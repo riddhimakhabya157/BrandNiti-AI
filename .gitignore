@@ -1,0 +1,24 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+*.pytest_cache/
+
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
+
+# Streamlit secrets and runtime
+.streamlit/secrets.toml
+
+# SQLite local databases (preserve seed scripts and schema)
+data/*.db
+data/*.db-wal
+data/*.db-shm
+
+# OS generated
+.DS_Store
+Thumbs.db
