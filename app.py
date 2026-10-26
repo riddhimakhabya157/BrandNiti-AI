@@ -1,7 +1,7 @@
 """BrandNiti AI — Every Brand Message. On Brand.
 AI-Powered Brand Governance: Create Confidently. Review Intelligently. Publish Responsibly.
 
-Enterprise SaaS Application.
+Enterprise SaaS Application with Horizontal Navigation and 4-Step Review Workflow.
 """
 import os
 import sys
@@ -31,14 +31,14 @@ from database.queries import (
     get_decisions_for_submission,
     get_audit_trail,
     get_governance_insights,
-    create_new_guideline_version,
-    create_brand
+    create_new_guideline_version
 )
 from services.review_workflow import run_content_review_workflow, submit_human_decision
-from services.ai_review import is_ai_available, get_gemini_api_key
+from services.ai_review import is_ai_available
 from styles.theme import (
     CUSTOM_CSS,
     render_header,
+    render_stepper,
     render_disposition_badge,
     render_divider
 )
@@ -46,141 +46,127 @@ from styles.theme import (
 # Helper for strictly unindented HTML rendering (guarantees CommonMark never converts HTML into code blocks)
 def render_html(html_str: str):
     """Renders HTML strictly unindented so CommonMark never treats it as a code block."""
-    st.markdown(textwrap.dedent(html_str).strip(), unsafe_allow_html=True)
+    clean_html = "\n".join(line.strip() for line in html_str.splitlines() if line.strip())
+    st.markdown(clean_html, unsafe_allow_html=True)
 
-# Page configuration
+# Page configuration - Clean full-width enterprise layout with collapsed sidebar
 st.set_page_config(
     page_title="BrandNiti AI | Enterprise Brand Governance",
     page_icon="⚖️",
     layout="wide",
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="collapsed"
 )
 
 # Ensure Database & Seed Fixture
 init_database()
 seed_nivara_pro_if_not_exists()
 
-# Initialize session state for navigation
-if "active_nav" not in st.session_state:
-    st.session_state["active_nav"] = "Overview"
+# Initialize session state for navigation and review stepper
+if "active_tab" not in st.session_state:
+    st.session_state["active_tab"] = "Overview"
+
+if "review_step" not in st.session_state:
+    st.session_state["review_step"] = 1
+
+# Initialize draft inputs in session state to guarantee preservation across reruns and tab switches
+if "cr_title" not in st.session_state:
+    st.session_state["cr_title"] = "Festival Flash Sale Ad"
+if "cr_content" not in st.session_state:
+    st.session_state["cr_content"] = "Get Nivara Pro today for ₹799. Guaranteed results in 24 hours!"
+if "cr_evidence" not in st.session_state:
+    st.session_state["cr_evidence"] = ""
+if "cr_channel" not in st.session_state:
+    st.session_state["cr_channel"] = "Instagram"
+if "cr_type" not in st.session_state:
+    st.session_state["cr_type"] = "advertisement"
+if "cr_campaign" not in st.session_state:
+    st.session_state["cr_campaign"] = "Q4 Festive Launch"
+if "cr_creator" not in st.session_state:
+    st.session_state["cr_creator"] = "Brand Marketing Lead"
+if "cr_sub_id" not in st.session_state:
+    st.session_state["cr_sub_id"] = None
+if "cr_revised_content" not in st.session_state:
+    st.session_state["cr_revised_content"] = ""
 
 # -------------------------------------------------------------
-# Sidebar Navigation
+# Top Enterprise Brand Header
 # -------------------------------------------------------------
-with st.sidebar:
-    sidebar_brand_html = """
-<div style="padding: 0.5rem 0 1rem 0; border-bottom: 1px solid rgba(226, 232, 240, 0.15);">
-    <div style="font-family: 'Cinzel', serif; font-size: 1.35rem; font-weight: 700; color: #FFFFFF; letter-spacing: 0.04em;">
-        BRAND<span style="color: #F59E0B;">NITI</span> AI
-    </div>
-    <div style="font-size: 0.82rem; color: #99F6E4; font-weight: 500; margin-top: 2px;">
-        Enterprise Governance Studio
-    </div>
-    <div style="font-size: 0.74rem; color: #CBD5E1; margin-top: 4px;">
-        Every Brand Message. On Brand.
-    </div>
-</div>
-"""
-    render_html(sidebar_brand_html)
+ai_connected = is_ai_available()
+render_header(ai_connected=ai_connected)
 
-    nav_options = [
-        "Overview",
-        "New Content Review",
-        "Review Queue",
-        "Brand Guidelines",
-        "Insights",
-        "Review History"
-    ]
+# -------------------------------------------------------------
+# Horizontal Navigation Bar (6 Tabs)
+# -------------------------------------------------------------
+nav_tabs = [
+    ("📊 Overview", "Overview"),
+    ("✍️ New Content Review", "New Content Review"),
+    ("📋 Review Queue", "Review Queue"),
+    ("📖 Brand Guidelines", "Brand Guidelines"),
+    ("📈 Insights", "Insights"),
+    ("📜 Review History", "Review History"),
+]
 
-    current_idx = nav_options.index(st.session_state["active_nav"]) if st.session_state["active_nav"] in nav_options else 0
-    selected_nav = st.radio(
-        "Governance Navigation",
-        nav_options,
-        index=current_idx,
-        label_visibility="collapsed"
-    )
-    st.session_state["active_nav"] = selected_nav
+nav_cols = st.columns(6)
+for idx, (tab_label, tab_name) in enumerate(nav_tabs):
+    with nav_cols[idx]:
+        is_active = (st.session_state["active_tab"] == tab_name)
+        btn_type = "primary" if is_active else "secondary"
+        if st.button(tab_label, key=f"nav_btn_{tab_name}", type=btn_type, use_container_width=True):
+            st.session_state["active_tab"] = tab_name
+            st.rerun()
 
-    st.markdown("---")
-
-    # Engine Status indicator
-    ai_status = is_ai_available()
-    if ai_status:
-        ai_badge_html = """
-<div style="background: rgba(15, 118, 110, 0.25); border: 1px solid #14B8A6; border-radius: 6px; padding: 0.55rem 0.75rem; margin-bottom: 0.75rem;">
-    <div style="font-size: 0.82rem; font-weight: 700; color: #99F6E4;">🟢 AI Engine: Connected</div>
-    <div style="font-size: 0.72rem; color: #E2E8F0; margin-top: 2px;">Gemini Contextual Analysis Active</div>
-</div>
-"""
-        render_html(ai_badge_html)
-    else:
-        det_badge_html = """
-<div style="background: rgba(217, 119, 6, 0.2); border: 1px solid #F59E0B; border-radius: 6px; padding: 0.55rem 0.75rem; margin-bottom: 0.75rem;">
-    <div style="font-size: 0.82rem; font-weight: 700; color: #FDE68A;">🟡 Deterministic Engine: Active</div>
-    <div style="font-size: 0.72rem; color: #E2E8F0; margin-top: 2px;">Rule-based checks with deterministic fallback</div>
-</div>
-"""
-        render_html(det_badge_html)
-
-    sidebar_footer_html = """
-<div style="font-size: 0.76rem; color: #94A3B8; line-height: 1.5; padding: 0.4rem 0;">
-    <b>Active Profile:</b> Nivara Pro (Sample)<br>
-    <b>Storage:</b> SQLite Persistent Store<br>
-    <b>Policy Mode:</b> Strict Verification
-</div>
-<div style="margin-top: 1.25rem; padding-top: 0.75rem; border-top: 1px solid rgba(226, 232, 240, 0.1); font-size: 0.7rem; color: #64748B;">
-    BrandNiti AI Enterprise Edition<br>
-    Powered by TWIN SOCH
-</div>
-"""
-    render_html(sidebar_footer_html)
+st.markdown("<div style='height: 10px;'></div>", unsafe_allow_html=True)
 
 
 # =============================================================
 # SECTION 1: OVERVIEW (PRACTICAL GOVERNANCE DASHBOARD)
 # =============================================================
-if st.session_state["active_nav"] == "Overview":
-    render_header("Executive Governance Dashboard")
+if st.session_state["active_tab"] == "Overview":
+    # Welcome & Action Card
+    with st.container(border=True):
+        col_w1, col_w2 = st.columns([3, 1])
+        with col_w1:
+            st.markdown("### Executive Governance Dashboard")
+            st.markdown(
+                "Autonomous brand governance platform for marketing, agency partners, and corporate communications. "
+                "Enforce non-negotiable brand rules, verify conditional promotional claims, detect unverified promises, "
+                "and maintain an immutable human approval audit trail."
+            )
+        with col_w2:
+            st.markdown("<div style='height: 18px;'></div>", unsafe_allow_html=True)
+            if st.button("✨ Review New Content", type="primary", use_container_width=True):
+                st.session_state["active_tab"] = "New Content Review"
+                st.rerun()
 
-    # Welcome Banner with direct action
-    col_w1, col_w2 = st.columns([3, 1])
-    with col_w1:
-        st.markdown(
-            "**Welcome to the BrandNiti AI Governance Portal.** Pre-publication verification, deterministic guideline enforcement, "
-            "and traceable human approval workflows for marketing teams, corporate communications, and external agencies."
-        )
-    with col_w2:
-        if st.button("✨ Review New Content", type="primary", use_container_width=True):
-            st.session_state["active_nav"] = "New Content Review"
-            st.rerun()
-
-    st.markdown("<div style='height: 8px;'></div>", unsafe_allow_html=True)
+    st.markdown("<div style='height: 10px;'></div>", unsafe_allow_html=True)
 
     # High-level stats from SQLite
     insights = get_governance_insights()
-    hold_count = insights['recommendations'].get('HOLD', 0)
-    approved_count = insights['human_decisions'].get('APPROVED', 0)
 
     c1, c2, c3, c4 = st.columns(4)
     with c1:
-        st.metric(label="TOTAL ASSETS AUDITED", value=insights['total_submissions'])
+        with st.container(border=True):
+            st.metric(label="TOTAL ASSETS AUDITED", value=insights['total_submissions'])
     with c2:
-        st.metric(label="AWAITING REVIEW", value=insights['pending_reviews'])
+        with st.container(border=True):
+            st.metric(label="AWAITING REVIEW", value=insights['pending_reviews'])
     with c3:
-        st.metric(label="POLICY BLOCKERS (HOLD)", value=hold_count)
+        with st.container(border=True):
+            st.metric(label="ISSUES REQUIRING ATTENTION", value=insights['issues_requiring_attention'])
     with c4:
-        st.metric(label="HUMAN APPROVED", value=approved_count)
+        with st.container(border=True):
+            st.metric(label="HUMAN APPROVED", value=insights['approved_count'])
 
     render_divider("❖")
 
-    # Governance Framework & Disposition Model
+    # Architecture & Standards
     col_left, col_right = st.columns([3, 2])
 
     with col_left:
         with st.container(border=True):
-            st.markdown("#### Closed-Loop Brand Governance Architecture")
+            st.markdown("#### Closed-Loop Governance Pipeline")
             st.markdown(
-                "BrandNiti AI protects brand integrity and legal compliance by verifying marketing messages against configured brand rules before publication.\n\n"
+                "BrandNiti AI protects brand integrity and legal compliance by verifying marketing messages before publication.\n\n"
                 "- **1. Content Ingestion & Channel Context:** Ingest copy across Instagram, LinkedIn, Google Ads, Email, and Web with version tracking.\n"
                 "- **2. Deterministic Validation Layer:** Non-negotiable checks on prohibited terminology, conditional pricing (₹799 vs standard ₹999), and required legal disclaimers.\n"
                 "- **3. Contextual AI Review:** Evaluates tone mismatch, hyperbolic promises, and unverified efficacy claims without hallucinating sources.\n"
@@ -190,19 +176,19 @@ if st.session_state["active_nav"] == "Overview":
 
     with col_right:
         with st.container(border=True):
-            st.markdown("#### System Disposition Standards")
+            st.markdown("#### Policy Disposition Model")
             pass_badge = render_disposition_badge("PASS")
             review_badge = render_disposition_badge("REVIEW")
             hold_badge = render_disposition_badge("HOLD")
 
             standards_html = f"""
-<div style="font-size: 0.9rem; line-height: 1.6;">
-    <div style="margin-bottom: 8px;">{pass_badge}<br><span style="color: #334155; font-size: 0.84rem;">All mandatory policies satisfied. Advisory clear to proceed.</span></div>
-    <div style="margin-bottom: 8px;">{review_badge}<br><span style="color: #334155; font-size: 0.84rem;">Unverified claim, conditional promo, or tone review required.</span></div>
-    <div style="margin-bottom: 8px;">{hold_badge}<br><span style="color: #334155; font-size: 0.84rem;">Mandatory prohibition violated. Blocked pending correction.</span></div>
+<div style="font-size: 0.92rem; line-height: 1.6;">
+    <div style="margin-bottom: 8px;">{pass_badge}<br><span style="color: #334155; font-size: 0.85rem;">All mandatory policies satisfied. Advisory clear to proceed.</span></div>
+    <div style="margin-bottom: 8px;">{review_badge}<br><span style="color: #334155; font-size: 0.85rem;">Unverified claim, conditional promo, or tone review required.</span></div>
+    <div style="margin-bottom: 8px;">{hold_badge}<br><span style="color: #334155; font-size: 0.85rem;">Mandatory prohibition violated. Blocked pending correction.</span></div>
 </div>
-<div style="background-color: #FFFBEB; border: 1px solid #FDE68A; border-radius: 6px; padding: 0.6rem 0.8rem; margin-top: 10px; font-size: 0.8rem; color: #92400E;">
-    <b>Governance Rule:</b> System recommendations are advisory. Official publication requires authorized human sign-off.
+<div style="background-color: #FFFBEB; border: 1px solid #FDE68A; border-radius: 6px; padding: 0.65rem 0.85rem; margin-top: 10px; font-size: 0.82rem; color: #92400E;">
+    <b>Governance Standard:</b> System recommendations are advisory. Official publication requires authorized human sign-off.
 </div>
 """
             render_html(standards_html)
@@ -212,7 +198,7 @@ if st.session_state["active_nav"] == "Overview":
     recent_activity = insights.get("recent_activity", [])
 
     if not recent_activity:
-        st.info("No review activity logged yet. Submit your first campaign asset in 'New Content Review' to view real-time governance activity.")
+        st.info("No review activity logged yet. Click 'Review New Content' above to audit your first campaign asset.")
     else:
         for act in recent_activity:
             rec_badge = render_disposition_badge(act["recommendation"])
@@ -231,125 +217,153 @@ if st.session_state["active_nav"] == "Overview":
 
 
 # =============================================================
-# SECTION 2: NEW CONTENT REVIEW (THE CORE WORKFLOW)
+# SECTION 2: NEW CONTENT REVIEW (4-STEP WORKFLOW)
 # =============================================================
-elif st.session_state["active_nav"] == "New Content Review":
-    render_header("Content Review & Compliance Verification")
+elif st.session_state["active_tab"] == "New Content Review":
+    st.markdown("## Content Review & Compliance Verification")
+
+    # Render 4-step visible progress stepper
+    render_stepper(st.session_state["review_step"])
 
     brands = get_all_brands()
     brand_map = {b.name: b.id for b in brands}
     brand_names = list(brand_map.keys())
 
-    # Standard Campaign Presets
-    st.markdown("**Standard Campaign Templates:** Load sample copy to test deterministic & contextual policy verification")
+    # ---------------------------------------------------------
+    # STEP 1: CONTENT DRAFT & METADATA
+    # ---------------------------------------------------------
+    if st.session_state["review_step"] == 1:
+        with st.container(border=True):
+            st.markdown("#### Step 1: Content Draft & Campaign Metadata")
 
-    col_p1, col_p2, col_p3 = st.columns(3)
-    with col_p1:
-        if st.button("⚠️ Promotional Offer (Conditional Pricing)", use_container_width=True):
-            st.session_state["form_title"] = "Festival Flash Sale Ad"
-            st.session_state["form_content"] = "Get Nivara Pro today for ₹799. Guaranteed results in 24 hours!"
-            st.session_state["form_evidence"] = ""
-            st.session_state["form_channel"] = "Instagram"
-            st.session_state["form_type"] = "advertisement"
-            st.rerun()
+            # Preset buttons to quickly test compliance rules
+            st.markdown("**Load Standard Campaign Templates:**")
+            col_p1, col_p2, col_p3 = st.columns(3)
+            with col_p1:
+                if st.button("⚠️ Promotional Offer (Conditional Pricing)", use_container_width=True):
+                    st.session_state["cr_title"] = "Festival Flash Sale Ad"
+                    st.session_state["cr_content"] = "Get Nivara Pro today for ₹799. Guaranteed results in 24 hours!"
+                    st.session_state["cr_evidence"] = ""
+                    st.session_state["cr_channel"] = "Instagram"
+                    st.session_state["cr_type"] = "advertisement"
+                    st.rerun()
 
-    with col_p2:
-        if st.button("✔ Standard Brand Awareness Copy", use_container_width=True):
-            st.session_state["form_title"] = "Daily Clarity & Wellness Post"
-            st.session_state["form_content"] = (
-                "Support your daily mental clarity with Nivara Pro for ₹999. "
-                "Formulated with natural adaptogens to assist your daily wellness journey.\n\n"
-                "*Disclaimer: Results may vary based on individual lifestyle, diet, and physiological factors."
+            with col_p2:
+                if st.button("✔ Standard Brand Awareness Copy", use_container_width=True):
+                    st.session_state["cr_title"] = "Daily Clarity & Wellness Post"
+                    st.session_state["cr_content"] = (
+                        "Support your daily mental clarity with Nivara Pro for ₹999. "
+                        "Formulated with natural adaptogens to assist your daily wellness journey.\n\n"
+                        "*Disclaimer: Results may vary based on individual lifestyle, diet, and physiological factors."
+                    )
+                    st.session_state["cr_evidence"] = "Formulation Quality Certificate: ISO-9001-NIVARA"
+                    st.session_state["cr_channel"] = "LinkedIn"
+                    st.session_state["cr_type"] = "social_post"
+                    st.rerun()
+
+            with col_p3:
+                if st.button("📄 Promotional Offer with Verified Evidence", use_container_width=True):
+                    st.session_state["cr_title"] = "Authorized Seasonal Email Offer"
+                    st.session_state["cr_content"] = (
+                        "Exclusive festive offer: Claim Nivara Pro for ₹799 during our festive celebration! "
+                        "Formulated to support your daily wellness journey.\n\n"
+                        "*Results may vary based on individual lifestyle and physiological factors."
+                    )
+                    st.session_state["cr_evidence"] = "Authorized Promo Code: DIWALI-2026-PROMO-AUTH (Valid until Nov 10)"
+                    st.session_state["cr_channel"] = "Email"
+                    st.session_state["cr_type"] = "email"
+                    st.rerun()
+
+            st.markdown("---")
+
+            # Form fields
+            col_f1, col_f2 = st.columns(2)
+            with col_f1:
+                st.session_state["cr_title"] = st.text_input("Content Title*", value=st.session_state["cr_title"])
+                brand_choice = st.selectbox("Applicable Brand Guidelines*", brand_names, index=0)
+                st.session_state["cr_channel"] = st.selectbox(
+                    "Publishing Channel*",
+                    ["Instagram", "LinkedIn", "Google Ads", "Email", "Website", "Print"],
+                    index=["Instagram", "LinkedIn", "Google Ads", "Email", "Website", "Print"].index(st.session_state["cr_channel"])
+                )
+            with col_f2:
+                st.session_state["cr_type"] = st.selectbox(
+                    "Content Format*",
+                    ["social_post", "advertisement", "email", "blog_article", "product_copy"],
+                    index=["social_post", "advertisement", "email", "blog_article", "product_copy"].index(st.session_state["cr_type"])
+                )
+                st.session_state["cr_campaign"] = st.text_input("Campaign Name (Optional)", value=st.session_state["cr_campaign"])
+                st.session_state["cr_creator"] = st.text_input("Creator / Agency Attribution", value=st.session_state["cr_creator"])
+
+            st.session_state["cr_content"] = st.text_area(
+                "Content Body Copy*",
+                value=st.session_state["cr_content"],
+                height=150,
+                help="Enter marketing copy to audit against brand rules and contextual AI checks."
             )
-            st.session_state["form_evidence"] = "Formulation Quality Certificate: ISO-9001-NIVARA"
-            st.session_state["form_channel"] = "LinkedIn"
-            st.session_state["form_type"] = "social_post"
-            st.rerun()
 
-    with col_p3:
-        if st.button("📄 Promotional Offer with Verified Evidence", use_container_width=True):
-            st.session_state["form_title"] = "Authorized Seasonal Email Offer"
-            st.session_state["form_content"] = (
-                "Exclusive festive offer: Claim Nivara Pro for ₹799 during our festive celebration! "
-                "Formulated to support your daily wellness journey.\n\n"
-                "*Results may vary based on individual lifestyle and physiological factors."
+            st.session_state["cr_evidence"] = st.text_area(
+                "Supporting Evidence / Authorization Codes / URLs (Optional)",
+                value=st.session_state["cr_evidence"],
+                height=70,
+                help="Provide promotional authorization codes, clinical study citations, or documentation URLs."
             )
-            st.session_state["form_evidence"] = "Authorized Promo Code: DIWALI-2026-PROMO-AUTH (Valid until Nov 10)"
-            st.session_state["form_channel"] = "Email"
-            st.session_state["form_type"] = "email"
-            st.rerun()
 
-    # Content Intake Form
-    with st.form("new_content_form"):
-        st.markdown("### 1. Asset Metadata")
-        col_f1, col_f2 = st.columns(2)
-        with col_f1:
-            title_val = st.text_input("Content Title*", value=st.session_state.get("form_title", "Festive Campaign Launch Copy"))
-            brand_choice = st.selectbox("Applicable Brand Guidelines*", brand_names, index=0)
-            channel_val = st.selectbox("Publishing Channel*", ["Instagram", "LinkedIn", "Google Ads", "Email", "Website", "Print"], index=0)
-        with col_f2:
-            type_val = st.selectbox("Content Format*", ["social_post", "advertisement", "email", "blog_article", "product_copy"], index=1)
-            campaign_val = st.text_input("Campaign Name (Optional)", value="Q4 Festive Campaign")
-            creator_val = st.text_input("Creator / Agency Attribution", value="Brand Marketing Lead")
+            col_btn1, col_btn2 = st.columns([3, 1])
+            with col_btn2:
+                if st.button("Analyze Content & Proceed →", type="primary", use_container_width=True):
+                    if not st.session_state["cr_title"].strip() or not st.session_state["cr_content"].strip():
+                        st.error("Please provide both a Content Title and Content Body to proceed.")
+                    else:
+                        selected_brand_id = brand_map[brand_choice]
+                        # Create or reuse submission
+                        if not st.session_state["cr_sub_id"]:
+                            sub = create_submission(
+                                title=st.session_state["cr_title"].strip(),
+                                content_type=st.session_state["cr_type"],
+                                channel=st.session_state["cr_channel"],
+                                campaign_name=st.session_state["cr_campaign"].strip(),
+                                brand_id=selected_brand_id,
+                                initial_content=st.session_state["cr_content"].strip(),
+                                supporting_evidence=st.session_state["cr_evidence"].strip(),
+                                creator=st.session_state["cr_creator"].strip()
+                            )
+                            st.session_state["cr_sub_id"] = sub.id
+                        else:
+                            # Re-running on existing submission
+                            sub = get_submission_by_id(st.session_state["cr_sub_id"])
 
-        st.markdown("### 2. Content Draft & Documentation")
-        content_val = st.text_area(
-            "Content Body Text*",
-            value=st.session_state.get("form_content", "Get Nivara Pro today for ₹799. Guaranteed results in 24 hours!"),
-            height=140,
-            help="Enter marketing copy to audit against brand rules and contextual AI checks."
-        )
+                        with st.spinner("Executing deterministic rules & contextual analysis..."):
+                            run = run_content_review_workflow(st.session_state["cr_sub_id"])
+                            st.session_state["latest_review_run"] = run
+                            st.session_state["cr_revised_content"] = run.suggested_revised_copy
+                            st.session_state["review_step"] = 2
+                            st.rerun()
 
-        evidence_val = st.text_area(
-            "Approved Supporting Evidence / Authorization References (Optional)",
-            value=st.session_state.get("form_evidence", ""),
-            height=70,
-            help="Provide promotional approval codes, clinical trial citations, or documentation URLs."
-        )
+    # ---------------------------------------------------------
+    # STEP 2: POLICY ANALYSIS & FINDINGS
+    # ---------------------------------------------------------
+    elif st.session_state["review_step"] == 2:
+        sub = get_submission_by_id(st.session_state["cr_sub_id"]) if st.session_state["cr_sub_id"] else None
+        run = get_latest_review_run_for_submission(st.session_state["cr_sub_id"]) if st.session_state["cr_sub_id"] else None
 
-        submit_audit = st.form_submit_button("🔍 Run Full Governance Audit", type="primary", use_container_width=True)
-
-    if submit_audit:
-        if not content_val.strip() or not title_val.strip():
-            st.error("Please provide both a Content Title and Content Body to proceed.")
+        if not sub or not run:
+            st.warning("No active audit run found. Please start by entering content in Step 1.")
+            if st.button("← Return to Step 1"):
+                st.session_state["review_step"] = 1
+                st.rerun()
         else:
-            selected_brand_id = brand_map[brand_choice]
-            new_sub = create_submission(
-                title=title_val.strip(),
-                content_type=type_val,
-                channel=channel_val,
-                campaign_name=campaign_val.strip(),
-                brand_id=selected_brand_id,
-                initial_content=content_val.strip(),
-                supporting_evidence=evidence_val.strip(),
-                creator=creator_val.strip()
-            )
-            st.session_state["active_submission_id"] = new_sub.id
+            with st.container(border=True):
+                st.markdown(f"#### Step 2: Policy Analysis Report — {sub.title} (v{sub.current_version_number})")
 
-            with st.spinner("Analyzing content against brand rules & contextual standards..."):
-                review_run = run_content_review_workflow(new_sub.id)
-                st.session_state["latest_review_run"] = review_run
-
-            st.success(f"Audit completed successfully! Asset registered as ID: {new_sub.id}")
-
-    # Display Results if active run exists
-    active_sub_id = st.session_state.get("active_submission_id")
-    if active_sub_id:
-        sub = get_submission_by_id(active_sub_id)
-        run = get_latest_review_run_for_submission(active_sub_id)
-
-        if sub and run:
-            render_divider("◆")
-            st.markdown(f"## Compliance Audit Report: {sub.title} (v{sub.current_version_number})")
-
-            # Top Recommendation Banner
-            badge_html = render_disposition_badge(run.overall_recommendation)
-            banner_html = f"""
-<div style="background: #FFFFFF; border-radius: 8px; border: 1px solid #E2E8F0; padding: 1.25rem 1.5rem; margin-bottom: 1.25rem;">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+                # Recommendation banner
+                badge_html = render_disposition_badge(run.overall_recommendation)
+                banner_html = f"""
+<div style="background: #FFFFFF; border-radius: 8px; border: 1px solid #E2E8F0; padding: 1.15rem 1.4rem; margin-bottom: 1rem;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.65rem;">
         <div>{badge_html}</div>
         <div style="font-size: 0.85rem; color: #64748B;">
-            Engine: <b>{run.ai_provider_mode}</b> | Guideline: <code>{run.guideline_version_id}</code>
+            Engine Mode: <b>{run.ai_provider_mode}</b> | Guideline: <code>{run.guideline_version_id}</code>
         </div>
     </div>
     <div style="font-size: 0.95rem; color: #1E293B; line-height: 1.6; white-space: pre-wrap;">
@@ -357,27 +371,26 @@ elif st.session_state["active_nav"] == "New Content Review":
     </div>
 </div>
 """
-            render_html(banner_html)
+                render_html(banner_html)
 
-            # Severity Counters
-            m1, m2, m3, m4 = st.columns(4)
-            with m1:
-                st.metric(label="CRITICAL BLOCKERS", value=run.critical_count)
-            with m2:
-                st.metric(label="HIGH SEVERITY", value=run.high_count)
-            with m3:
-                st.metric(label="MEDIUM ISSUES", value=run.medium_count)
-            with m4:
-                st.metric(label="LOW / ADVISORY", value=run.low_count)
+                # Severity counters
+                m1, m2, m3, m4 = st.columns(4)
+                with m1:
+                    st.metric(label="CRITICAL BLOCKERS", value=run.critical_count)
+                with m2:
+                    st.metric(label="HIGH SEVERITY", value=run.high_count)
+                with m3:
+                    st.metric(label="MEDIUM ISSUES", value=run.medium_count)
+                with m4:
+                    st.metric(label="LOW / ADVISORY", value=run.low_count)
 
-            # Itemized Findings
-            st.markdown("### Itemized Policy Findings")
-            if not run.findings:
-                st.success("✔ No policy violations detected. Content satisfies all active brand rules.")
-            else:
-                for idx, f in enumerate(run.findings):
-                    border_class = "finding-crit" if f.severity == "CRITICAL" else ("finding-high" if f.severity == "HIGH" else ("finding-med" if f.severity == "MEDIUM" else "finding-low"))
-                    finding_html = f"""
+                st.markdown("### Itemized Policy Findings")
+                if not run.findings:
+                    st.success("✔ No policy violations detected. Content satisfies all active brand rules.")
+                else:
+                    for idx, f in enumerate(run.findings):
+                        border_class = "finding-crit" if f.severity == "CRITICAL" else ("finding-high" if f.severity == "HIGH" else ("finding-med" if f.severity == "MEDIUM" else "finding-low"))
+                        finding_html = f"""
 <div class="finding-box {border_class}">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
         <span style="font-weight: 700; color: #1E1B4B; font-size: 0.98rem;">#{idx+1} [{f.severity}] {f.rule_title}</span>
@@ -390,62 +403,189 @@ elif st.session_state["active_nav"] == "New Content Review":
     <div style="font-size: 0.8rem; color: #64748B; margin-top: 5px;"><b>Verification State:</b> <code>{f.verification_state}</code> | <b>Source:</b> {f.source}</div>
 </div>
 """
-                    render_html(finding_html)
+                        render_html(finding_html)
 
-            # Suggested Revision Diff
-            st.markdown("### Suggested Revision & Comparison")
-            c_orig, c_sugg = st.columns(2)
-            latest_rev = get_latest_revision(active_sub_id)
-            with c_orig:
-                st.markdown("**Submitted Copy (v1):**")
+            # Stepper Navigation
+            col_b1, col_b2, col_b3 = st.columns([1, 2, 1])
+            with col_b1:
+                if st.button("← Back to Content Draft", use_container_width=True):
+                    st.session_state["review_step"] = 1
+                    st.rerun()
+            with col_b3:
+                if st.button("Proceed to Suggested Corrections →", type="primary", use_container_width=True):
+                    st.session_state["review_step"] = 3
+                    st.rerun()
+
+    # ---------------------------------------------------------
+    # STEP 3: SUGGESTED CORRECTIONS & RE-AUDIT
+    # ---------------------------------------------------------
+    elif st.session_state["review_step"] == 3:
+        sub = get_submission_by_id(st.session_state["cr_sub_id"]) if st.session_state["cr_sub_id"] else None
+        run = get_latest_review_run_for_submission(st.session_state["cr_sub_id"]) if st.session_state["cr_sub_id"] else None
+        latest_rev = get_latest_revision(st.session_state["cr_sub_id"]) if st.session_state["cr_sub_id"] else None
+
+        if not sub or not run:
+            st.warning("No active submission. Please return to Step 1.")
+            if st.button("← Return to Step 1"):
+                st.session_state["review_step"] = 1
+                st.rerun()
+        else:
+            with st.container(border=True):
+                st.markdown(f"#### Step 3: Suggested Corrections & Revision — {sub.title} (Current: v{sub.current_version_number})")
+
+                c_orig, c_sugg = st.columns(2)
+                with c_orig:
+                    st.markdown("**Original Submitted Draft:**")
+                    with st.container(border=True):
+                        st.text(latest_rev.content_text if latest_rev else "")
+
+                with c_sugg:
+                    st.markdown("**On-Brand Suggested Compliant Copy:**")
+                    with st.container(border=True):
+                        st.text(run.suggested_revised_copy)
+
+                st.markdown("---")
+                st.markdown("### Refine & Publish Revision")
+                rev_text_val = st.text_area(
+                    "Editable Revised Copy",
+                    value=st.session_state.get("cr_revised_content") or run.suggested_revised_copy,
+                    height=130
+                )
+                rev_evidence_val = st.text_area(
+                    "Updated Supporting Evidence / Citations",
+                    value=latest_rev.supporting_evidence if latest_rev else "",
+                    height=60
+                )
+                rev_summary_val = st.text_input("Revision Notes", value="Applied recommended on-brand pricing and required variation disclaimer")
+
+                if st.button("⚡ Re-audit Revised Copy (Creates New Version)", type="primary"):
+                    if not rev_text_val.strip():
+                        st.error("Revised copy cannot be empty.")
+                    else:
+                        new_rev = create_content_revision(
+                            submission_id=sub.id,
+                            new_content_text=rev_text_val.strip(),
+                            supporting_evidence=rev_evidence_val.strip(),
+                            change_summary=rev_summary_val.strip(),
+                            actor="Content Creator"
+                        )
+                        new_run = run_content_review_workflow(sub.id, revision_id=new_rev.id)
+                        st.session_state["latest_review_run"] = new_run
+                        st.session_state["cr_revised_content"] = rev_text_val.strip()
+                        st.success(f"Published Version v{new_rev.version_number}! New Audit Recommendation: {new_run.overall_recommendation}")
+                        st.rerun()
+
+            # Stepper Navigation
+            col_b1, col_b2, col_b3 = st.columns([1, 2, 1])
+            with col_b1:
+                if st.button("← Back to Policy Analysis", use_container_width=True):
+                    st.session_state["review_step"] = 2
+                    st.rerun()
+            with col_b3:
+                if st.button("Proceed to Human Sign-off →", type="primary", use_container_width=True):
+                    st.session_state["review_step"] = 4
+                    st.rerun()
+
+    # ---------------------------------------------------------
+    # STEP 4: HUMAN DECISION & SIGN-OFF
+    # ---------------------------------------------------------
+    elif st.session_state["review_step"] == 4:
+        sub = get_submission_by_id(st.session_state["cr_sub_id"]) if st.session_state["cr_sub_id"] else None
+        run = get_latest_review_run_for_submission(st.session_state["cr_sub_id"]) if st.session_state["cr_sub_id"] else None
+        latest_rev = get_latest_revision(st.session_state["cr_sub_id"]) if st.session_state["cr_sub_id"] else None
+        decisions = get_decisions_for_submission(st.session_state["cr_sub_id"]) if st.session_state["cr_sub_id"] else []
+
+        if not sub or not run:
+            st.warning("No active submission. Please return to Step 1.")
+            if st.button("← Return to Step 1"):
+                st.session_state["review_step"] = 1
+                st.rerun()
+        else:
+            with st.container(border=True):
+                st.markdown(f"#### Step 4: Human Governance Decision — {sub.title} (v{sub.current_version_number})")
+
+                rec_badge = render_disposition_badge(run.overall_recommendation)
+                sub_meta_html = f"""
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+    <div>{rec_badge}</div>
+    <div style="font-size: 0.85rem; color: #64748B;">
+        Status: <b>{sub.current_status}</b> | Version: <b>v{sub.current_version_number}</b> | Channel: <b>{sub.channel}</b>
+    </div>
+</div>
+"""
+                render_html(sub_meta_html)
+
+                st.markdown("**Final Content Copy for Publication:**")
                 with st.container(border=True):
                     st.text(latest_rev.content_text if latest_rev else "")
 
-            with c_sugg:
-                st.markdown("**On-Brand Suggested Copy:**")
-                with st.container(border=True):
-                    st.text(run.suggested_revised_copy)
+                if latest_rev and latest_rev.supporting_evidence:
+                    st.markdown(f"**Supporting Evidence:** `{latest_rev.supporting_evidence}`")
 
-            # Inline Revision Editor
-            st.markdown("### Edit & Re-audit")
-            with st.expander(f"✏️ Refine Content & Submit Version v{sub.current_version_number + 1}", expanded=False):
-                with st.form("revise_form"):
-                    revised_text_input = st.text_area(
-                        "Revised Content Copy",
-                        value=run.suggested_revised_copy,
-                        height=130
-                    )
-                    revised_evidence_input = st.text_area(
-                        "Updated Supporting Evidence / Citations",
-                        value=latest_rev.supporting_evidence if latest_rev else "",
-                        height=60
-                    )
-                    rev_summary_input = st.text_input("Revision Summary", value="Applied on-brand pricing and required variation disclaimer")
-                    submit_new_rev = st.form_submit_button("Submit Revised Version & Re-run Audit", type="primary")
+                if decisions:
+                    st.markdown("#### Prior Human Decisions")
+                    for d in decisions:
+                        valid_tag = "<span style='color: #059669; font-weight: 700;'>[ACTIVE APPROVAL]</span>" if d.is_currently_valid else "<span style='color: #DC2626; font-weight: 700;'>[REVOKED BY CONTENT EDIT]</span>"
+                        dec_html = f"""
+<div style="font-size: 0.88rem; background: #FFFFFF; border: 1px solid #E2E8F0; padding: 0.65rem 0.85rem; border-radius: 6px; margin-bottom: 6px;">
+    <b>{d.decision}</b> by <b>{d.reviewer_name}</b> ({d.reviewer_role}) at {d.created_at[:16].replace('T', ' ')} UTC &bull; {valid_tag}<br>
+    <i>Rationale:</i> {d.reviewer_comments}
+</div>
+"""
+                        render_html(dec_html)
 
-                if submit_new_rev:
-                    new_revision = create_content_revision(
-                        submission_id=active_sub_id,
-                        new_content_text=revised_text_input.strip(),
-                        supporting_evidence=revised_evidence_input.strip(),
-                        change_summary=rev_summary_input.strip(),
-                        actor="Content Creator"
+                st.markdown("#### Record Official Human Decision")
+                with st.form("official_decision_form"):
+                    col_d1, col_d2 = st.columns(2)
+                    with col_d1:
+                        rev_name = st.text_input("Reviewer Name", value="Priya Sharma")
+                        rev_role = st.selectbox("Regulatory Role", ["Brand Governance Director", "Legal Counsel", "Marketing Lead"])
+                    with col_d2:
+                        decision_choice = st.radio("Decision", ["APPROVED", "CHANGES_REQUESTED", "REJECTED"], index=0)
+                        rev_comments = st.text_area("Reviewer Rationale & Notes", value="Verified against brand guidelines and statutory disclaimers.", height=70)
+
+                    submit_dec = st.form_submit_button("✔ Confirm & Record Official Decision", type="primary")
+
+                if submit_dec:
+                    submit_human_decision(
+                        submission_id=sub.id,
+                        revision_id=latest_rev.id,
+                        review_run_id=run.id,
+                        decision=decision_choice,
+                        reviewer_name=rev_name,
+                        reviewer_role=rev_role,
+                        reviewer_comments=rev_comments
                     )
-                    new_run = run_content_review_workflow(active_sub_id, revision_id=new_revision.id)
-                    st.success(f"Published Version v{new_revision.version_number}! New Recommendation: {new_run.overall_recommendation}")
+                    st.success(f"Official decision '{decision_choice}' recorded! Audit trail updated.")
+                    st.rerun()
+
+                st.info("Governance Policy: Editing approved content automatically revokes the prior approval for the new draft and mandates revalidation.")
+
+            col_b1, col_b2, col_b3 = st.columns([1, 2, 1])
+            with col_b1:
+                if st.button("← Back to Corrections", use_container_width=True):
+                    st.session_state["review_step"] = 3
+                    st.rerun()
+            with col_b3:
+                if st.button("Start Fresh Review", use_container_width=True):
+                    st.session_state["review_step"] = 1
+                    st.session_state["cr_sub_id"] = None
+                    st.session_state["cr_title"] = ""
+                    st.session_state["cr_content"] = ""
+                    st.session_state["cr_evidence"] = ""
                     st.rerun()
 
 
 # =============================================================
 # SECTION 3: REVIEW QUEUE
 # =============================================================
-elif st.session_state["active_nav"] == "Review Queue":
-    render_header("Content Approval & Governance Queue")
+elif st.session_state["active_tab"] == "Review Queue":
+    st.markdown("## Content Approval & Governance Queue")
 
     col_q1, col_q2 = st.columns([1, 2])
     with col_q1:
         status_filter = st.selectbox(
-            "Filter by Status",
+            "Filter by Workflow Status",
             ["ALL", "SUBMITTED", "IN_REVIEW", "CHANGES_REQUESTED", "APPROVED", "REJECTED"],
             index=0
         )
@@ -460,7 +600,7 @@ elif st.session_state["active_nav"] == "Review Queue":
     st.markdown(f"Displaying **{len(submissions)}** content record(s) in review queue.")
 
     if not submissions:
-        st.info("No content records matching the selected status filter.")
+        st.info("No content records matching the selected filter.")
     else:
         for sub in submissions:
             latest_run = get_latest_review_run_for_submission(sub.id)
@@ -501,15 +641,15 @@ elif st.session_state["active_nav"] == "Review Queue":
 """
                         render_html(dec_html)
 
-                st.markdown("#### Record Official Human Approval")
-                with st.form(f"decision_form_{sub.id}"):
+                st.markdown("#### Record Official Human Decision")
+                with st.form(f"queue_decision_form_{sub.id}"):
                     c_rev1, c_rev2 = st.columns(2)
                     with c_rev1:
-                        rev_name = st.text_input("Reviewer Name", value="Priya Sharma", key=f"rname_{sub.id}")
-                        rev_role = st.selectbox("Reviewer Authority", ["Brand Governance Director", "Legal Counsel", "Marketing Lead"], key=f"rrole_{sub.id}")
+                        rev_name = st.text_input("Reviewer Name", value="Priya Sharma", key=f"qrname_{sub.id}")
+                        rev_role = st.selectbox("Regulatory Role", ["Brand Governance Director", "Legal Counsel", "Marketing Lead"], key=f"qrrole_{sub.id}")
                     with c_rev2:
-                        decision_choice = st.radio("Decision", ["APPROVED", "CHANGES_REQUESTED", "REJECTED"], key=f"dchoice_{sub.id}")
-                        rev_comments = st.text_area("Reviewer Rationale & Notes", value="Verified against brand guidelines and statutory disclaimers.", height=70, key=f"rcomm_{sub.id}")
+                        decision_choice = st.radio("Decision", ["APPROVED", "CHANGES_REQUESTED", "REJECTED"], key=f"qdchoice_{sub.id}")
+                        rev_comments = st.text_area("Reviewer Rationale & Notes", value="Verified against brand guidelines and statutory disclaimers.", height=70, key=f"qrcomm_{sub.id}")
 
                     submit_dec = st.form_submit_button("Record Official Decision", type="primary")
 
@@ -535,8 +675,8 @@ elif st.session_state["active_nav"] == "Review Queue":
 # =============================================================
 # SECTION 4: BRAND GUIDELINES
 # =============================================================
-elif st.session_state["active_nav"] == "Brand Guidelines":
-    render_header("Brand Guidelines & Policy Configuration")
+elif st.session_state["active_tab"] == "Brand Guidelines":
+    st.markdown("## Brand Guidelines & Policy Configuration")
 
     brands = get_all_brands()
     brand_map = {b.name: b.id for b in brands}
@@ -647,23 +787,25 @@ elif st.session_state["active_nav"] == "Brand Guidelines":
 # =============================================================
 # SECTION 5: INSIGHTS
 # =============================================================
-elif st.session_state["active_nav"] == "Insights":
-    render_header("Governance Analytics & Recurring Risk Intelligence")
+elif st.session_state["active_tab"] == "Insights":
+    st.markdown("## Governance Analytics & Recurring Risk Intelligence")
 
     insights = get_governance_insights()
-    pass_ratio = (insights['recommendations'].get('PASS', 0) / max(insights['total_submissions'], 1)) * 100
-    hold_count = insights['recommendations'].get('HOLD', 0)
-    approved_count = insights['human_decisions'].get('APPROVED', 0)
+    pass_ratio = (insights['pass_count'] / max(insights['total_submissions'], 1)) * 100
 
     c1, c2, c3, c4 = st.columns(4)
     with c1:
-        st.metric(label="TOTAL ASSETS AUDITED", value=insights['total_submissions'])
+        with st.container(border=True):
+            st.metric(label="TOTAL ASSETS AUDITED", value=insights['total_submissions'])
     with c2:
-        st.metric(label="CLEAN PASS RATE", value=f"{pass_ratio:.0f}%")
+        with st.container(border=True):
+            st.metric(label="CLEAN PASS RATE", value=f"{pass_ratio:.0f}%")
     with c3:
-        st.metric(label="BLOCKED VIOLATIONS (HOLD)", value=hold_count)
+        with st.container(border=True):
+            st.metric(label="BLOCKED VIOLATIONS (HOLD)", value=insights['hold_count'])
     with c4:
-        st.metric(label="HUMAN APPROVED", value=approved_count)
+        with st.container(border=True):
+            st.metric(label="HUMAN APPROVED", value=insights['approved_count'])
 
     render_divider("❖")
 
@@ -713,15 +855,15 @@ elif st.session_state["active_nav"] == "Insights":
         cols = st.columns(len(cat_items))
         for idx, (cat, cnt) in enumerate(cat_items.items()):
             with cols[idx]:
-                st.metric(label=cat.upper(), value=cnt)
+                with st.container(border=True):
+                    st.metric(label=cat.upper(), value=cnt)
 
 
 # =============================================================
 # SECTION 6: REVIEW HISTORY & AUDIT TRAIL
 # =============================================================
-elif st.session_state["active_nav"] == "Review History":
-    render_header("Immutable Governance Audit Trail")
-
+elif st.session_state["active_tab"] == "Review History":
+    st.markdown("## Immutable Governance Audit Trail")
     st.markdown("Every draft submission, automated policy check, human approval decision, and approval invalidation is recorded in a tamper-resistant SQLite audit log with exact UTC timestamps.")
 
     audit_events = get_audit_trail(limit=50)

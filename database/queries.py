@@ -775,27 +775,41 @@ def get_governance_insights() -> Dict[str, Any]:
     with get_db_connection() as conn:
         cursor = conn.cursor()
 
-        # 1. Submission counts
-        cursor.execute("SELECT COUNT(*) as total FROM submissions")
+        # 1. Submission counts (distinct submissions)
+        cursor.execute("SELECT COUNT(DISTINCT id) as total FROM submissions")
         total_submissions = cursor.fetchone()["total"]
 
-        cursor.execute("SELECT COUNT(*) as pending FROM submissions WHERE current_status IN ('DRAFT', 'SUBMITTED', 'IN_REVIEW')")
+        cursor.execute("SELECT COUNT(DISTINCT id) as pending FROM submissions WHERE current_status IN ('SUBMITTED', 'IN_REVIEW')")
         pending_reviews = cursor.fetchone()["pending"]
 
-        cursor.execute("SELECT current_status, COUNT(*) as cnt FROM submissions GROUP BY current_status")
+        cursor.execute("SELECT COUNT(DISTINCT id) as approved FROM submissions WHERE current_status = 'APPROVED'")
+        approved_count = cursor.fetchone()["approved"]
+
+        cursor.execute("SELECT current_status, COUNT(DISTINCT id) as cnt FROM submissions GROUP BY current_status")
         status_counts = {r["current_status"]: r["cnt"] for r in cursor.fetchall()}
 
-        # 2. AI / System Recommendations (from latest review runs)
+        # 2. System Recommendations from LATEST review run per submission (distinct per asset)
         cursor.execute("""
-            SELECT overall_recommendation, COUNT(*) as cnt
-            FROM review_runs
-            GROUP BY overall_recommendation
+            SELECT rr.overall_recommendation, COUNT(DISTINCT rr.submission_id) as cnt
+            FROM review_runs rr
+            INNER JOIN (
+                SELECT submission_id, MAX(created_at) as max_created
+                FROM review_runs
+                GROUP BY submission_id
+            ) latest ON rr.submission_id = latest.submission_id AND rr.created_at = latest.max_created
+            GROUP BY rr.overall_recommendation
         """)
         rec_counts = {r["overall_recommendation"]: r["cnt"] for r in cursor.fetchall()}
 
-        # 3. Human Approval Status
+        # Calculate items requiring attention (HOLD + REVIEW)
+        hold_count = rec_counts.get("HOLD", 0)
+        review_count = rec_counts.get("REVIEW", 0)
+        pass_count = rec_counts.get("PASS", 0)
+        issues_requiring_attention = hold_count + review_count
+
+        # 3. Valid Human Approval Status
         cursor.execute("""
-            SELECT decision, COUNT(*) as cnt
+            SELECT decision, COUNT(DISTINCT submission_id) as cnt
             FROM approval_decisions
             WHERE is_currently_valid = 1
             GROUP BY decision
@@ -844,13 +858,13 @@ def get_governance_insights() -> Dict[str, Any]:
         """)
         category_breakdown = {r["category"]: r["cnt"] for r in cursor.fetchall()}
 
-        # 7. Recent reviews
+        # 7. Recent distinct reviews
         cursor.execute("""
             SELECT rr.id, rr.overall_recommendation, rr.created_at, s.title, s.content_type, s.channel
             FROM review_runs rr
             JOIN submissions s ON s.id = rr.submission_id
             ORDER BY rr.created_at DESC
-            LIMIT 5
+            LIMIT 6
         """)
         recent_activity = [
             {
@@ -867,6 +881,11 @@ def get_governance_insights() -> Dict[str, Any]:
         return {
             "total_submissions": total_submissions,
             "pending_reviews": pending_reviews,
+            "approved_count": approved_count,
+            "issues_requiring_attention": issues_requiring_attention,
+            "hold_count": hold_count,
+            "review_count": review_count,
+            "pass_count": pass_count,
             "status_counts": status_counts,
             "recommendations": rec_counts,
             "human_decisions": human_decisions,
