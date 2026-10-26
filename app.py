@@ -5,6 +5,7 @@ Enterprise SaaS Application.
 """
 import os
 import sys
+import textwrap
 from pathlib import Path
 
 # Ensure workspace root is in sys.path
@@ -13,7 +14,6 @@ if WORKSPACE_ROOT not in sys.path:
     sys.path.insert(0, WORKSPACE_ROOT)
 
 import streamlit as st
-from datetime import datetime, timezone
 
 from database.schema import init_database
 from database.seed_data import seed_nivara_pro_if_not_exists, NIVARA_BRAND_ID
@@ -38,11 +38,15 @@ from services.review_workflow import run_content_review_workflow, submit_human_d
 from services.ai_review import is_ai_available, get_gemini_api_key
 from styles.theme import (
     CUSTOM_CSS,
-    BRAND_SVG_EMBLEM,
     render_header,
     render_disposition_badge,
     render_divider
 )
+
+# Helper for strictly unindented HTML rendering (guarantees CommonMark never converts HTML into code blocks)
+def render_html(html_str: str):
+    """Renders HTML strictly unindented so CommonMark never treats it as a code block."""
+    st.markdown(textwrap.dedent(html_str).strip(), unsafe_allow_html=True)
 
 # Page configuration
 st.set_page_config(
@@ -64,24 +68,20 @@ if "active_nav" not in st.session_state:
 # Sidebar Navigation
 # -------------------------------------------------------------
 with st.sidebar:
-    st.markdown(f"""
-    <div style="padding: 0.75rem 0 1.25rem 0; border-bottom: 1px solid rgba(226, 232, 240, 0.15);">
-        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 6px;">
-            {BRAND_SVG_EMBLEM}
-            <div>
-                <div style="font-family: 'Cinzel', serif; font-size: 1.35rem; font-weight: 700; color: #FFFFFF; letter-spacing: 0.04em;">
-                    BRAND<span style="color: #F59E0B;">NITI</span> AI
-                </div>
-                <div style="font-size: 0.8rem; color: #99F6E4; font-weight: 500;">
-                    Enterprise Governance
-                </div>
-            </div>
-        </div>
-        <div style="font-size: 0.75rem; color: #CBD5E1; margin-top: 4px; line-height: 1.4;">
-            Every Brand Message. On Brand.
-        </div>
+    sidebar_brand_html = """
+<div style="padding: 0.5rem 0 1rem 0; border-bottom: 1px solid rgba(226, 232, 240, 0.15);">
+    <div style="font-family: 'Cinzel', serif; font-size: 1.35rem; font-weight: 700; color: #FFFFFF; letter-spacing: 0.04em;">
+        BRAND<span style="color: #F59E0B;">NITI</span> AI
     </div>
-    """, unsafe_allow_html=True)
+    <div style="font-size: 0.82rem; color: #99F6E4; font-weight: 500; margin-top: 2px;">
+        Enterprise Governance Studio
+    </div>
+    <div style="font-size: 0.74rem; color: #CBD5E1; margin-top: 4px;">
+        Every Brand Message. On Brand.
+    </div>
+</div>
+"""
+    render_html(sidebar_brand_html)
 
     nav_options = [
         "Overview",
@@ -92,10 +92,9 @@ with st.sidebar:
         "Review History"
     ]
 
-    # Find index of active navigation
     current_idx = nav_options.index(st.session_state["active_nav"]) if st.session_state["active_nav"] in nav_options else 0
     selected_nav = st.radio(
-        "Governance Portal",
+        "Governance Navigation",
         nav_options,
         index=current_idx,
         label_visibility="collapsed"
@@ -107,31 +106,34 @@ with st.sidebar:
     # Engine Status indicator
     ai_status = is_ai_available()
     if ai_status:
-        st.markdown("""
-        <div style="background: rgba(15, 118, 110, 0.25); border: 1px solid #14B8A6; border-radius: 6px; padding: 0.6rem 0.8rem; margin-bottom: 0.75rem;">
-            <div style="font-size: 0.82rem; font-weight: 700; color: #99F6E4;">🟢 AI Engine: Connected</div>
-            <div style="font-size: 0.72rem; color: #E2E8F0; margin-top: 2px;">Gemini Contextual Analysis Active</div>
-        </div>
-        """, unsafe_allow_html=True)
+        ai_badge_html = """
+<div style="background: rgba(15, 118, 110, 0.25); border: 1px solid #14B8A6; border-radius: 6px; padding: 0.55rem 0.75rem; margin-bottom: 0.75rem;">
+    <div style="font-size: 0.82rem; font-weight: 700; color: #99F6E4;">🟢 AI Engine: Connected</div>
+    <div style="font-size: 0.72rem; color: #E2E8F0; margin-top: 2px;">Gemini Contextual Analysis Active</div>
+</div>
+"""
+        render_html(ai_badge_html)
     else:
-        st.markdown("""
-        <div style="background: rgba(217, 119, 6, 0.2); border: 1px solid #F59E0B; border-radius: 6px; padding: 0.6rem 0.8rem; margin-bottom: 0.75rem;">
-            <div style="font-size: 0.82rem; font-weight: 700; color: #FDE68A;">🟡 Deterministic Engine: Active</div>
-            <div style="font-size: 0.72rem; color: #E2E8F0; margin-top: 2px;">Rule-based checks with deterministic fallback</div>
-        </div>
-        """, unsafe_allow_html=True)
+        det_badge_html = """
+<div style="background: rgba(217, 119, 6, 0.2); border: 1px solid #F59E0B; border-radius: 6px; padding: 0.55rem 0.75rem; margin-bottom: 0.75rem;">
+    <div style="font-size: 0.82rem; font-weight: 700; color: #FDE68A;">🟡 Deterministic Engine: Active</div>
+    <div style="font-size: 0.72rem; color: #E2E8F0; margin-top: 2px;">Rule-based checks with deterministic fallback</div>
+</div>
+"""
+        render_html(det_badge_html)
 
-    st.markdown("""
-    <div style="font-size: 0.76rem; color: #94A3B8; line-height: 1.5; padding: 0.5rem 0;">
-        <b>Active Profile:</b> Nivara Pro (Sample)<br>
-        <b>Storage:</b> SQLite Persistent Store<br>
-        <b>Policy Mode:</b> Strict Verification
-    </div>
-    <div style="margin-top: 1.5rem; padding-top: 0.75rem; border-top: 1px solid rgba(226, 232, 240, 0.1); font-size: 0.7rem; color: #64748B;">
-        BrandNiti AI Enterprise Edition<br>
-        Powered by TWIN SOCH
-    </div>
-    """, unsafe_allow_html=True)
+    sidebar_footer_html = """
+<div style="font-size: 0.76rem; color: #94A3B8; line-height: 1.5; padding: 0.4rem 0;">
+    <b>Active Profile:</b> Nivara Pro (Sample)<br>
+    <b>Storage:</b> SQLite Persistent Store<br>
+    <b>Policy Mode:</b> Strict Verification
+</div>
+<div style="margin-top: 1.25rem; padding-top: 0.75rem; border-top: 1px solid rgba(226, 232, 240, 0.1); font-size: 0.7rem; color: #64748B;">
+    BrandNiti AI Enterprise Edition<br>
+    Powered by TWIN SOCH
+</div>
+"""
+    render_html(sidebar_footer_html)
 
 
 # =============================================================
@@ -143,55 +145,31 @@ if st.session_state["active_nav"] == "Overview":
     # Welcome Banner with direct action
     col_w1, col_w2 = st.columns([3, 1])
     with col_w1:
-        st.markdown("""
-        <div style="margin-bottom: 1.25rem;">
-            <div style="font-size: 1.35rem; font-weight: 700; color: #1E1B4B; margin-bottom: 4px;">
-                Welcome to BrandNiti AI Governance Portal
-            </div>
-            <div style="font-size: 0.95rem; color: #475569; line-height: 1.55;">
-                Autonomous pre-publication verification, deterministic guideline enforcement, and traceable human approval workflows for marketing teams, corporate communications, and external agencies.
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
+        st.markdown(
+            "**Welcome to the BrandNiti AI Governance Portal.** Pre-publication verification, deterministic guideline enforcement, "
+            "and traceable human approval workflows for marketing teams, corporate communications, and external agencies."
+        )
     with col_w2:
         if st.button("✨ Review New Content", type="primary", use_container_width=True):
             st.session_state["active_nav"] = "New Content Review"
             st.rerun()
 
+    st.markdown("<div style='height: 8px;'></div>", unsafe_allow_html=True)
+
     # High-level stats from SQLite
     insights = get_governance_insights()
+    hold_count = insights['recommendations'].get('HOLD', 0)
+    approved_count = insights['human_decisions'].get('APPROVED', 0)
 
     c1, c2, c3, c4 = st.columns(4)
     with c1:
-        st.markdown(f"""
-        <div class="metric-tile">
-            <div class="num">{insights['total_submissions']}</div>
-            <div class="lbl">Total Assets Audited</div>
-        </div>
-        """, unsafe_allow_html=True)
+        st.metric(label="TOTAL ASSETS AUDITED", value=insights['total_submissions'])
     with c2:
-        st.markdown(f"""
-        <div class="metric-tile" style="border-top: 3px solid #F59E0B;">
-            <div class="num" style="color: #D97706;">{insights['pending_reviews']}</div>
-            <div class="lbl">Awaiting Review</div>
-        </div>
-        """, unsafe_allow_html=True)
+        st.metric(label="AWAITING REVIEW", value=insights['pending_reviews'])
     with c3:
-        hold_count = insights['recommendations'].get('HOLD', 0)
-        st.markdown(f"""
-        <div class="metric-tile" style="border-top: 3px solid #EF4444;">
-            <div class="num" style="color: #DC2626;">{hold_count}</div>
-            <div class="lbl">Policy Blockers (HOLD)</div>
-        </div>
-        """, unsafe_allow_html=True)
+        st.metric(label="POLICY BLOCKERS (HOLD)", value=hold_count)
     with c4:
-        approved_count = insights['human_decisions'].get('APPROVED', 0)
-        st.markdown(f"""
-        <div class="metric-tile" style="border-top: 3px solid #0F766E;">
-            <div class="num" style="color: #0F766E;">{approved_count}</div>
-            <div class="lbl">Human Approved</div>
-        </div>
-        """, unsafe_allow_html=True)
+        st.metric(label="HUMAN APPROVED", value=approved_count)
 
     render_divider("❖")
 
@@ -199,71 +177,57 @@ if st.session_state["active_nav"] == "Overview":
     col_left, col_right = st.columns([3, 2])
 
     with col_left:
-        st.markdown("""
-        <div class="bn-card">
-            <div class="bn-card-title">Closed-Loop Brand Governance Architecture</div>
-            <div class="bn-card-desc">
-                BrandNiti AI protects brand integrity and legal compliance by verifying marketing messages against configured brand rules before publication.
-            </div>
-            <div style="background-color: #F8FAFC; border-radius: 8px; padding: 1rem; border: 1px solid #E2E8F0; margin-top: 0.85rem; font-size: 0.92rem; line-height: 1.6;">
-                <div style="margin-bottom: 6px;"><b>1. Content Ingestion & Channel Context:</b> Ingest copy across Instagram, LinkedIn, Google Ads, Email, and Web with version tracking.</div>
-                <div style="margin-bottom: 6px;"><b>2. Deterministic Validation Layer:</b> Non-negotiable checks on prohibited terminology, conditional pricing (₹799 vs standard ₹999), and required legal disclaimers.</div>
-                <div style="margin-bottom: 6px;"><b>3. Contextual AI Review:</b> Evaluates tone mismatch, hyperbolic promises, and unverified efficacy claims without hallucinating sources.</div>
-                <div style="margin-bottom: 6px;"><b>4. Explainable Disposition (HOLD &gt; REVIEW &gt; PASS):</b> Instant itemized findings with exact matched text, policy rules, and suggested corrections.</div>
-                <div><b>5. Human Approval Workflow:</b> Traceable decisions with automatic invalidation if approved copy is subsequently edited.</div>
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
+        with st.container(border=True):
+            st.markdown("#### Closed-Loop Brand Governance Architecture")
+            st.markdown(
+                "BrandNiti AI protects brand integrity and legal compliance by verifying marketing messages against configured brand rules before publication.\n\n"
+                "- **1. Content Ingestion & Channel Context:** Ingest copy across Instagram, LinkedIn, Google Ads, Email, and Web with version tracking.\n"
+                "- **2. Deterministic Validation Layer:** Non-negotiable checks on prohibited terminology, conditional pricing (₹799 vs standard ₹999), and required legal disclaimers.\n"
+                "- **3. Contextual AI Review:** Evaluates tone mismatch, hyperbolic promises, and unverified efficacy claims without hallucinating sources.\n"
+                "- **4. Explainable Disposition (HOLD > REVIEW > PASS):** Instant itemized findings with exact matched text, policy rules, and suggested corrections.\n"
+                "- **5. Human Approval Workflow:** Traceable decisions with automatic invalidation if approved copy is subsequently edited."
+            )
 
     with col_right:
-        st.markdown("""
-        <div class="bn-card bn-card-gold">
-            <div class="bn-card-title">System Disposition Standards</div>
-            <div style="margin-top: 0.5rem; font-size: 0.9rem; line-height: 1.55;">
-                <div style="margin-bottom: 8px;">
-                    <span class="badge-pass" style="font-size: 0.78rem; padding: 2px 8px;">✔ PASS</span>
-                    <span style="color: #334155; margin-left: 6px;">All mandatory policies satisfied. Advisory clear to proceed.</span>
-                </div>
-                <div style="margin-bottom: 8px;">
-                    <span class="badge-review" style="font-size: 0.78rem; padding: 2px 8px;">⚠ REVIEW</span>
-                    <span style="color: #334155; margin-left: 6px;">Unverified claim, conditional promo, or tone review required.</span>
-                </div>
-                <div style="margin-bottom: 8px;">
-                    <span class="badge-hold" style="font-size: 0.78rem; padding: 2px 8px;">✖ HOLD</span>
-                    <span style="color: #334155; margin-left: 6px;">Mandatory prohibition violated. Blocked pending correction.</span>
-                </div>
-                <div style="background-color: #FFFBEB; border: 1px solid #FDE68A; border-radius: 6px; padding: 0.65rem; margin-top: 10px; font-size: 0.8rem; color: #92400E;">
-                    <b>Governance Rule:</b> System recommendations are advisory. Official publication requires authorized human sign-off.
-                </div>
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
+        with st.container(border=True):
+            st.markdown("#### System Disposition Standards")
+            pass_badge = render_disposition_badge("PASS")
+            review_badge = render_disposition_badge("REVIEW")
+            hold_badge = render_disposition_badge("HOLD")
+
+            standards_html = f"""
+<div style="font-size: 0.9rem; line-height: 1.6;">
+    <div style="margin-bottom: 8px;">{pass_badge}<br><span style="color: #334155; font-size: 0.84rem;">All mandatory policies satisfied. Advisory clear to proceed.</span></div>
+    <div style="margin-bottom: 8px;">{review_badge}<br><span style="color: #334155; font-size: 0.84rem;">Unverified claim, conditional promo, or tone review required.</span></div>
+    <div style="margin-bottom: 8px;">{hold_badge}<br><span style="color: #334155; font-size: 0.84rem;">Mandatory prohibition violated. Blocked pending correction.</span></div>
+</div>
+<div style="background-color: #FFFBEB; border: 1px solid #FDE68A; border-radius: 6px; padding: 0.6rem 0.8rem; margin-top: 10px; font-size: 0.8rem; color: #92400E;">
+    <b>Governance Rule:</b> System recommendations are advisory. Official publication requires authorized human sign-off.
+</div>
+"""
+            render_html(standards_html)
 
     # Recent Governance Activity
     st.markdown("### Recent Governance Activity")
     recent_activity = insights.get("recent_activity", [])
 
     if not recent_activity:
-        st.markdown("""
-        <div style="background: #FFFFFF; border: 1px dashed #CBD5E1; border-radius: 8px; padding: 2rem; text-align: center; color: #64748B;">
-            <div style="font-size: 1.1rem; font-weight: 600; color: #1E1B4B; margin-bottom: 4px;">No review activity logged yet</div>
-            <div style="font-size: 0.9rem;">Submit your first campaign asset in <b>New Content Review</b> to view real-time governance activity here.</div>
-        </div>
-        """, unsafe_allow_html=True)
+        st.info("No review activity logged yet. Submit your first campaign asset in 'New Content Review' to view real-time governance activity.")
     else:
         for act in recent_activity:
             rec_badge = render_disposition_badge(act["recommendation"])
-            st.markdown(f"""
-            <div style="background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 8px; padding: 0.85rem 1.25rem; margin-bottom: 0.65rem; display: flex; justify-content: space-between; align-items: center;">
-                <div>
-                    <div style="font-weight: 700; color: #1E1B4B; font-size: 0.95rem;">{act['title']}</div>
-                    <div style="font-size: 0.82rem; color: #64748B;">
-                        Channel: <b>{act['channel']}</b> • Type: <b>{act['content_type']}</b> • Audited: {act['created_at'][:16].replace('T', ' ')} UTC
-                    </div>
-                </div>
-                <div>{rec_badge}</div>
-            </div>
-            """, unsafe_allow_html=True)
+            act_html = f"""
+<div style="background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 8px; padding: 0.85rem 1.25rem; margin-bottom: 0.65rem; display: flex; justify-content: space-between; align-items: center;">
+    <div>
+        <div style="font-weight: 700; color: #1E1B4B; font-size: 0.95rem;">{act['title']}</div>
+        <div style="font-size: 0.82rem; color: #64748B;">
+            Channel: <b>{act['channel']}</b> &bull; Format: <b>{act['content_type']}</b> &bull; Audited: {act['created_at'][:16].replace('T', ' ')} UTC
+        </div>
+    </div>
+    <div>{rec_badge}</div>
+</div>
+"""
+            render_html(act_html)
 
 
 # =============================================================
@@ -277,17 +241,12 @@ elif st.session_state["active_nav"] == "New Content Review":
     brand_names = list(brand_map.keys())
 
     # Standard Campaign Presets
-    st.markdown("""
-    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.85rem;">
-        <span style="font-weight: 700; color: #1E1B4B; font-size: 0.95rem;">Standard Campaign Templates:</span>
-        <span style="font-size: 0.82rem; color: #64748B;">Load sample copy to test deterministic & contextual policy verification</span>
-    </div>
-    """, unsafe_allow_html=True)
+    st.markdown("**Standard Campaign Templates:** Load sample copy to test deterministic & contextual policy verification")
 
     col_p1, col_p2, col_p3 = st.columns(3)
     with col_p1:
         if st.button("⚠️ Promotional Offer (Conditional Pricing)", use_container_width=True):
-            st.session_state["form_title"] = "Diwali Festival Flash Sale Ad"
+            st.session_state["form_title"] = "Festival Flash Sale Ad"
             st.session_state["form_content"] = "Get Nivara Pro today for ₹799. Guaranteed results in 24 hours!"
             st.session_state["form_evidence"] = ""
             st.session_state["form_channel"] = "Instagram"
@@ -338,7 +297,7 @@ elif st.session_state["active_nav"] == "New Content Review":
             "Content Body Text*",
             value=st.session_state.get("form_content", "Get Nivara Pro today for ₹799. Guaranteed results in 24 hours!"),
             height=140,
-            help="Enter the marketing copy, caption, or script to audit against active brand guidelines."
+            help="Enter marketing copy to audit against brand rules and contextual AI checks."
         )
 
         evidence_val = st.text_area(
@@ -355,7 +314,6 @@ elif st.session_state["active_nav"] == "New Content Review":
             st.error("Please provide both a Content Title and Content Body to proceed.")
         else:
             selected_brand_id = brand_map[brand_choice]
-            # Save submission to SQLite
             new_sub = create_submission(
                 title=title_val.strip(),
                 content_type=type_val,
@@ -368,7 +326,6 @@ elif st.session_state["active_nav"] == "New Content Review":
             )
             st.session_state["active_submission_id"] = new_sub.id
 
-            # Execute review workflow
             with st.spinner("Analyzing content against brand rules & contextual standards..."):
                 review_run = run_content_review_workflow(new_sub.id)
                 st.session_state["latest_review_run"] = review_run
@@ -386,109 +343,70 @@ elif st.session_state["active_nav"] == "New Content Review":
             st.markdown(f"## Compliance Audit Report: {sub.title} (v{sub.current_version_number})")
 
             # Top Recommendation Banner
-            rec = run.overall_recommendation
-            badge_html = render_disposition_badge(rec)
-            st.markdown(f"""
-            <div style="background: #FFFFFF; border-radius: 10px; border: 1px solid #E2E8F0; padding: 1.35rem 1.65rem; margin-bottom: 1.25rem;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
-                    <div>{badge_html}</div>
-                    <div style="font-size: 0.85rem; color: #64748B;">
-                        Engine: <b>{run.ai_provider_mode}</b> | Guideline Version: <code>{run.guideline_version_id}</code>
-                    </div>
-                </div>
-                <div style="font-size: 0.95rem; color: #1E293B; line-height: 1.6; white-space: pre-wrap;">
-                    <b>Executive Rationale:</b><br>{run.summary}
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
+            badge_html = render_disposition_badge(run.overall_recommendation)
+            banner_html = f"""
+<div style="background: #FFFFFF; border-radius: 8px; border: 1px solid #E2E8F0; padding: 1.25rem 1.5rem; margin-bottom: 1.25rem;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+        <div>{badge_html}</div>
+        <div style="font-size: 0.85rem; color: #64748B;">
+            Engine: <b>{run.ai_provider_mode}</b> | Guideline: <code>{run.guideline_version_id}</code>
+        </div>
+    </div>
+    <div style="font-size: 0.95rem; color: #1E293B; line-height: 1.6; white-space: pre-wrap;">
+        <b>Executive Rationale:</b><br>{run.summary}
+    </div>
+</div>
+"""
+            render_html(banner_html)
 
-            # Severity Metric Tiles
+            # Severity Counters
             m1, m2, m3, m4 = st.columns(4)
             with m1:
-                st.markdown(f"""
-                <div class="metric-tile" style="border-left: 4px solid #DC2626;">
-                    <div class="num" style="color: #DC2626;">{run.critical_count}</div>
-                    <div class="lbl">Critical Blockers</div>
-                </div>
-                """, unsafe_allow_html=True)
+                st.metric(label="CRITICAL BLOCKERS", value=run.critical_count)
             with m2:
-                st.markdown(f"""
-                <div class="metric-tile" style="border-left: 4px solid #EA580C;">
-                    <div class="num" style="color: #EA580C;">{run.high_count}</div>
-                    <div class="lbl">High Severity</div>
-                </div>
-                """, unsafe_allow_html=True)
+                st.metric(label="HIGH SEVERITY", value=run.high_count)
             with m3:
-                st.markdown(f"""
-                <div class="metric-tile" style="border-left: 4px solid #D97706;">
-                    <div class="num" style="color: #D97706;">{run.medium_count}</div>
-                    <div class="lbl">Medium Issues</div>
-                </div>
-                """, unsafe_allow_html=True)
+                st.metric(label="MEDIUM ISSUES", value=run.medium_count)
             with m4:
-                st.markdown(f"""
-                <div class="metric-tile" style="border-left: 4px solid #0F766E;">
-                    <div class="num" style="color: #0F766E;">{run.low_count}</div>
-                    <div class="lbl">Low / Advisory</div>
-                </div>
-                """, unsafe_allow_html=True)
+                st.metric(label="LOW / ADVISORY", value=run.low_count)
 
             # Itemized Findings
             st.markdown("### Itemized Policy Findings")
             if not run.findings:
-                st.markdown("""
-                <div style="background: #F0FDF4; border: 1px solid #BBF7D0; border-radius: 8px; padding: 1.25rem; color: #166534; font-size: 0.95rem;">
-                    ✔ <b>No policy violations detected.</b> The content complies with all active brand rules and required legal disclaimers. Ready for human sign-off.
-                </div>
-                """, unsafe_allow_html=True)
+                st.success("✔ No policy violations detected. Content satisfies all active brand rules.")
             else:
                 for idx, f in enumerate(run.findings):
                     border_class = "finding-crit" if f.severity == "CRITICAL" else ("finding-high" if f.severity == "HIGH" else ("finding-med" if f.severity == "MEDIUM" else "finding-low"))
-                    st.markdown(f"""
-                    <div class="finding-box {border_class}">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-                            <span style="font-weight: 700; color: #1E1B4B; font-size: 1rem;">
-                                #{idx+1} [{f.severity}] {f.rule_title}
-                            </span>
-                            <span style="font-size: 0.78rem; background: #F1F5F9; color: #334155; padding: 3px 10px; border-radius: 4px; font-weight: 600;">
-                                {f.category} • Disposition Impact: <b>{f.disposition_impact}</b>
-                            </span>
-                        </div>
-                        <div style="font-size: 0.92rem; color: #1E293B; margin-bottom: 5px;">
-                            <b>Matched Text:</b> <code style="color: #DC2626; background: #FEF2F2; font-size: 0.9rem; padding: 2px 6px;">{f.matched_text}</code>
-                        </div>
-                        <div style="font-size: 0.9rem; color: #475569; margin-bottom: 5px;">
-                            <b>Policy Explanation:</b> {f.explanation}
-                        </div>
-                        <div style="font-size: 0.9rem; color: #0F766E; margin-bottom: 5px;">
-                            <b>Brand Condition:</b> {f.expected_condition}
-                        </div>
-                        <div style="font-size: 0.9rem; color: #B45309; margin-bottom: 5px;">
-                            <b>Recommended Correction:</b> {f.recommended_correction}
-                        </div>
-                        <div style="font-size: 0.8rem; color: #64748B; margin-top: 6px;">
-                            <b>Verification State:</b> <code>{f.verification_state}</code> | <b>Source:</b> {f.source}
-                        </div>
-                    </div>
-                    """, unsafe_allow_html=True)
+                    finding_html = f"""
+<div class="finding-box {border_class}">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+        <span style="font-weight: 700; color: #1E1B4B; font-size: 0.98rem;">#{idx+1} [{f.severity}] {f.rule_title}</span>
+        <span style="font-size: 0.78rem; background: #F1F5F9; color: #334155; padding: 3px 10px; border-radius: 4px; font-weight: 600;">{f.category} &bull; Impact: <b>{f.disposition_impact}</b></span>
+    </div>
+    <div style="font-size: 0.92rem; color: #1E293B; margin-bottom: 4px;"><b>Matched Text:</b> <code style="color: #DC2626; background: #FEF2F2; font-size: 0.9rem; padding: 2px 6px;">{f.matched_text}</code></div>
+    <div style="font-size: 0.9rem; color: #475569; margin-bottom: 4px;"><b>Policy Explanation:</b> {f.explanation}</div>
+    <div style="font-size: 0.9rem; color: #0F766E; margin-bottom: 4px;"><b>Brand Condition:</b> {f.expected_condition}</div>
+    <div style="font-size: 0.9rem; color: #B45309; margin-bottom: 4px;"><b>Recommended Correction:</b> {f.recommended_correction}</div>
+    <div style="font-size: 0.8rem; color: #64748B; margin-top: 5px;"><b>Verification State:</b> <code>{f.verification_state}</code> | <b>Source:</b> {f.source}</div>
+</div>
+"""
+                    render_html(finding_html)
 
-            # Copy Comparison & Suggested Revision
+            # Suggested Revision Diff
             st.markdown("### Suggested Revision & Comparison")
             c_orig, c_sugg = st.columns(2)
             latest_rev = get_latest_revision(active_sub_id)
             with c_orig:
                 st.markdown("**Submitted Copy (v1):**")
-                st.markdown(f"""
-                <div class="diff-box">{latest_rev.content_text if latest_rev else ""}</div>
-                """, unsafe_allow_html=True)
+                with st.container(border=True):
+                    st.text(latest_rev.content_text if latest_rev else "")
 
             with c_sugg:
                 st.markdown("**On-Brand Suggested Copy:**")
-                st.markdown(f"""
-                <div class="diff-box" style="border-color: #0F766E; background-color: #F0FDF4;">{run.suggested_revised_copy}</div>
-                """, unsafe_allow_html=True)
+                with st.container(border=True):
+                    st.text(run.suggested_revised_copy)
 
-            # Inline Revision & Re-audit
+            # Inline Revision Editor
             st.markdown("### Edit & Re-audit")
             with st.expander(f"✏️ Refine Content & Submit Version v{sub.current_version_number + 1}", expanded=False):
                 with st.form("revise_form"):
@@ -542,59 +460,47 @@ elif st.session_state["active_nav"] == "Review Queue":
     st.markdown(f"Displaying **{len(submissions)}** content record(s) in review queue.")
 
     if not submissions:
-        st.markdown("""
-        <div style="background: #FFFFFF; border: 1px dashed #CBD5E1; border-radius: 8px; padding: 2rem; text-align: center; color: #64748B;">
-            <div style="font-size: 1.1rem; font-weight: 600; color: #1E1B4B; margin-bottom: 4px;">No matching submissions</div>
-            <div style="font-size: 0.9rem;">There are no content records matching the current filter.</div>
-        </div>
-        """, unsafe_allow_html=True)
+        st.info("No content records matching the selected status filter.")
     else:
         for sub in submissions:
             latest_run = get_latest_review_run_for_submission(sub.id)
             latest_rev = get_latest_revision(sub.id)
             decisions = get_decisions_for_submission(sub.id)
-
             rec_badge = render_disposition_badge(latest_run.overall_recommendation if latest_run else "REVIEW")
 
             with st.expander(f"📌 {sub.title} ({sub.content_type} • {sub.channel}) — Status: {sub.current_status} (v{sub.current_version_number})", expanded=False):
-                st.markdown(f"""
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.85rem;">
-                    <div>{rec_badge}</div>
-                    <div style="font-size: 0.85rem; color: #64748B;">
-                        ID: <code>{sub.id}</code> | Created: {sub.created_at[:16].replace('T', ' ')} UTC
-                    </div>
-                </div>
-                """, unsafe_allow_html=True)
+                sub_meta_html = f"""
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+    <div>{rec_badge}</div>
+    <div style="font-size: 0.85rem; color: #64748B;">ID: <code>{sub.id}</code> | Created: {sub.created_at[:16].replace('T', ' ')} UTC</div>
+</div>
+"""
+                render_html(sub_meta_html)
 
                 st.markdown("**Current Content Text:**")
-                st.markdown(f"""
-                <div class="diff-box">{latest_rev.content_text if latest_rev else ""}</div>
-                """, unsafe_allow_html=True)
+                with st.container(border=True):
+                    st.text(latest_rev.content_text if latest_rev else "")
 
                 if latest_rev and latest_rev.supporting_evidence:
                     st.markdown(f"**Supporting Evidence:** `{latest_rev.supporting_evidence}`")
 
                 if latest_run:
                     st.markdown(f"**Automated System Recommendation ({latest_run.overall_recommendation}):**")
-                    st.markdown(f"""
-                    <div style="font-size: 0.9rem; color: #334155; background: #F8FAFC; padding: 0.85rem; border-radius: 6px; border: 1px solid #E2E8F0;">
-                        {latest_run.summary}
-                    </div>
-                    """, unsafe_allow_html=True)
+                    with st.container(border=True):
+                        st.markdown(latest_run.summary)
 
-                # Prior Human Decisions
                 if decisions:
                     st.markdown("#### Decision History")
                     for d in decisions:
                         valid_tag = "<span style='color: #059669; font-weight: 700;'>[ACTIVE APPROVAL]</span>" if d.is_currently_valid else "<span style='color: #DC2626; font-weight: 700;'>[REVOKED BY CONTENT EDIT]</span>"
-                        st.markdown(f"""
-                        <div style="font-size: 0.88rem; background: #FFFFFF; border: 1px solid #E2E8F0; padding: 0.65rem 0.85rem; border-radius: 6px; margin-bottom: 6px;">
-                            <b>{d.decision}</b> by <b>{d.reviewer_name}</b> ({d.reviewer_role}) at {d.created_at[:16].replace('T', ' ')} UTC — {valid_tag}<br>
-                            <i>Rationale:</i> {d.reviewer_comments}
-                        </div>
-                        """, unsafe_allow_html=True)
+                        dec_html = f"""
+<div style="font-size: 0.88rem; background: #FFFFFF; border: 1px solid #E2E8F0; padding: 0.65rem 0.85rem; border-radius: 6px; margin-bottom: 6px;">
+    <b>{d.decision}</b> by <b>{d.reviewer_name}</b> ({d.reviewer_role}) at {d.created_at[:16].replace('T', ' ')} UTC &bull; {valid_tag}<br>
+    <i>Rationale:</i> {d.reviewer_comments}
+</div>
+"""
+                        render_html(dec_html)
 
-                # Record Decision Form
                 st.markdown("#### Record Official Human Approval")
                 with st.form(f"decision_form_{sub.id}"):
                     c_rev1, c_rev2 = st.columns(2)
@@ -623,11 +529,7 @@ elif st.session_state["active_nav"] == "Review Queue":
                         st.success(f"Official decision '{decision_choice}' recorded! Audit trail updated.")
                         st.rerun()
 
-                st.markdown("""
-                <div style="font-size: 0.82rem; color: #475569; background: #FFFBEB; padding: 0.65rem; border-radius: 6px; border: 1px solid #FDE68A; margin-top: 10px;">
-                    <b>Governance Policy:</b> Editing approved content automatically revokes the prior approval for the new draft and mandates revalidation.
-                </div>
-                """, unsafe_allow_html=True)
+                st.info("Governance Policy: Editing approved content automatically revokes the prior approval for the new draft and mandates revalidation.")
 
 
 # =============================================================
@@ -647,67 +549,41 @@ elif st.session_state["active_nav"] == "Brand Guidelines":
 
     if brand and guideline:
         if brand.is_demo:
-            st.markdown("""
-            <div style="background-color: #FEF3C7; border: 1.5px solid #F59E0B; border-radius: 8px; padding: 0.85rem 1.15rem; margin-bottom: 1.25rem; color: #92400E; font-size: 0.9rem;">
-                <b>Sample Brand Profile:</b> Nivara Pro is an illustrative premium wellness and daily performance brand profile used to demonstrate policy enforcement, conditional promotional checks, and evidence verification.
-            </div>
-            """, unsafe_allow_html=True)
+            st.info("Sample Brand Profile: Nivara Pro is an illustrative premium wellness and daily performance brand profile used to demonstrate policy enforcement, conditional promotional checks, and evidence verification.")
 
-        st.markdown(f"""
-        <div class="bn-card">
-            <div class="bn-card-title">{brand.name} — {brand.tagline}</div>
-            <div style="font-size: 0.88rem; color: #64748B; margin-bottom: 0.5rem;">
-                Active Policy Version: <b>{guideline.version_label}</b> | Industry: <b>{brand.industry}</b>
-            </div>
-            <div class="bn-card-desc">{brand.description}</div>
-        </div>
-        """, unsafe_allow_html=True)
+        with st.container(border=True):
+            st.markdown(f"### {brand.name} — {brand.tagline}")
+            st.markdown(f"**Active Policy Version:** `{guideline.version_label}` | **Industry:** {brand.industry}")
+            st.markdown(brand.description)
 
         col_g1, col_g2 = st.columns(2)
         with col_g1:
-            st.markdown(f"""
-            <div class="bn-card" style="border-left-color: #0F766E;">
-                <div class="bn-card-title" style="font-size: 1.05rem;">Tone of Voice</div>
-                <div style="font-size: 0.92rem; color: #334155;">{guideline.tone_of_voice}</div>
-            </div>
-            """, unsafe_allow_html=True)
+            with st.container(border=True):
+                st.markdown("#### Tone of Voice")
+                st.markdown(guideline.tone_of_voice)
         with col_g2:
-            st.markdown(f"""
-            <div class="bn-card bn-card-gold">
-                <div class="bn-card-title" style="font-size: 1.05rem;">Target Audience</div>
-                <div style="font-size: 0.92rem; color: #334155;">{guideline.target_audience}</div>
-            </div>
-            """, unsafe_allow_html=True)
+            with st.container(border=True):
+                st.markdown("#### Target Audience")
+                st.markdown(guideline.target_audience)
 
-        # Configured Policy Rules Table
         st.markdown(f"### Active Deterministic Brand Rules ({len(guideline.rules)} rules configured)")
         for r in guideline.rules:
             sev_color = "#DC2626" if r.severity == "CRITICAL" else ("#EA580C" if r.severity == "HIGH" else ("#D97706" if r.severity == "MEDIUM" else "#0F766E"))
             blocks_tag = "<span style='color: #DC2626; font-weight: 700;'>[BLOCKS APPROVAL / HOLD]</span>" if r.blocks_approval else "<span style='color: #D97706; font-weight: 600;'>[REVIEW ONLY]</span>"
 
-            st.markdown(f"""
-            <div class="finding-box" style="border-left: 4px solid {sev_color};">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
-                    <span style="font-weight: 700; color: #1E1B4B; font-size: 0.98rem;">
-                        [{r.severity}] {r.title}
-                    </span>
-                    <span style="font-size: 0.8rem;">
-                        Category: <b>{r.category}</b> | {blocks_tag}
-                    </span>
-                </div>
-                <div style="font-size: 0.88rem; color: #475569; margin-bottom: 4px;">
-                    <b>Trigger Pattern:</b> <code>{r.pattern}</code> | <b>Rule Type:</b> <code>{r.rule_type}</code>
-                </div>
-                <div style="font-size: 0.9rem; color: #334155; margin-bottom: 4px;">
-                    <b>Description:</b> {r.description}
-                </div>
-                <div style="font-size: 0.88rem; color: #0F766E;">
-                    <b>Mandated Fix:</b> {r.suggested_fix}
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
+            rule_html = f"""
+<div class="finding-box" style="border-left: 4px solid {sev_color};">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+        <span style="font-weight: 700; color: #1E1B4B; font-size: 0.98rem;">[{r.severity}] {r.title}</span>
+        <span style="font-size: 0.8rem;">Category: <b>{r.category}</b> &bull; {blocks_tag}</span>
+    </div>
+    <div style="font-size: 0.88rem; color: #475569; margin-bottom: 4px;"><b>Trigger Pattern:</b> <code>{r.pattern}</code> | <b>Rule Type:</b> <code>{r.rule_type}</code></div>
+    <div style="font-size: 0.9rem; color: #334155; margin-bottom: 4px;"><b>Description:</b> {r.description}</div>
+    <div style="font-size: 0.88rem; color: #0F766E;"><b>Mandated Fix:</b> {r.suggested_fix}</div>
+</div>
+"""
+            render_html(rule_html)
 
-        # Publish Guideline Revision
         render_divider("❖")
         st.markdown("### Guideline Revision Management")
         with st.expander(f"➕ Publish New Guideline Version (Current: v{guideline.version_number}.0)", expanded=False):
@@ -775,40 +651,19 @@ elif st.session_state["active_nav"] == "Insights":
     render_header("Governance Analytics & Recurring Risk Intelligence")
 
     insights = get_governance_insights()
+    pass_ratio = (insights['recommendations'].get('PASS', 0) / max(insights['total_submissions'], 1)) * 100
+    hold_count = insights['recommendations'].get('HOLD', 0)
+    approved_count = insights['human_decisions'].get('APPROVED', 0)
 
     c1, c2, c3, c4 = st.columns(4)
     with c1:
-        st.markdown(f"""
-        <div class="metric-tile">
-            <div class="num">{insights['total_submissions']}</div>
-            <div class="lbl">Total Assets Audited</div>
-        </div>
-        """, unsafe_allow_html=True)
+        st.metric(label="TOTAL ASSETS AUDITED", value=insights['total_submissions'])
     with c2:
-        pass_ratio = (
-            (insights['recommendations'].get('PASS', 0) / max(insights['total_submissions'], 1)) * 100
-        )
-        st.markdown(f"""
-        <div class="metric-tile">
-            <div class="num" style="color: #059669;">{pass_ratio:.0f}%</div>
-            <div class="lbl">Clean Pass Rate</div>
-        </div>
-        """, unsafe_allow_html=True)
+        st.metric(label="CLEAN PASS RATE", value=f"{pass_ratio:.0f}%")
     with c3:
-        hold_count = insights['recommendations'].get('HOLD', 0)
-        st.markdown(f"""
-        <div class="metric-tile">
-            <div class="num" style="color: #DC2626;">{hold_count}</div>
-            <div class="lbl">Blocked Violations</div>
-        </div>
-        """, unsafe_allow_html=True)
+        st.metric(label="BLOCKED VIOLATIONS (HOLD)", value=hold_count)
     with c4:
-        st.markdown(f"""
-        <div class="metric-tile">
-            <div class="num" style="color: #0F766E;">{insights['human_decisions'].get('APPROVED', 0)}</div>
-            <div class="lbl">Human Approved</div>
-        </div>
-        """, unsafe_allow_html=True)
+        st.metric(label="HUMAN APPROVED", value=approved_count)
 
     render_divider("❖")
 
@@ -817,46 +672,40 @@ elif st.session_state["active_nav"] == "Insights":
     with col_i1:
         st.markdown("### Top Frequently Triggered Brand Rules")
         if not insights['top_rules']:
-            st.markdown("""
-            <div style="background: #FFFFFF; border: 1px dashed #CBD5E1; border-radius: 8px; padding: 1.5rem; text-align: center; color: #64748B;">
-                No rule violations logged yet.
-            </div>
-            """, unsafe_allow_html=True)
+            st.info("No rule violations logged yet.")
         else:
             for r in insights['top_rules']:
-                st.markdown(f"""
-                <div style="background: #FFFFFF; border: 1px solid #E2E8F0; padding: 1rem; border-radius: 8px; margin-bottom: 8px; border-left: 4px solid #D97706;">
-                    <div style="display: flex; justify-content: space-between; font-weight: 700; color: #1E1B4B; font-size: 0.95rem;">
-                        <span>{r['rule_title']}</span>
-                        <span style="color: #D97706;">{r['trigger_count']} times</span>
-                    </div>
-                    <div style="font-size: 0.82rem; color: #64748B; margin-top: 3px;">
-                        Category: {r['category']} • Severity: {r['severity']}
-                    </div>
-                </div>
-                """, unsafe_allow_html=True)
+                rule_stat_html = f"""
+<div style="background: #FFFFFF; border: 1px solid #E2E8F0; padding: 0.85rem 1rem; border-radius: 8px; margin-bottom: 8px; border-left: 4px solid #D97706;">
+    <div style="display: flex; justify-content: space-between; font-weight: 700; color: #1E1B4B; font-size: 0.95rem;">
+        <span>{r['rule_title']}</span>
+        <span style="color: #D97706;">{r['trigger_count']} times</span>
+    </div>
+    <div style="font-size: 0.82rem; color: #64748B; margin-top: 3px;">
+        Category: {r['category']} &bull; Severity: {r['severity']}
+    </div>
+</div>
+"""
+                render_html(rule_stat_html)
 
     with col_i2:
         st.markdown("### Repeated Unsupported Claim Patterns")
         if not insights['unsupported_patterns']:
-            st.markdown("""
-            <div style="background: #FFFFFF; border: 1px dashed #CBD5E1; border-radius: 8px; padding: 1.5rem; text-align: center; color: #64748B;">
-                No repeated unsupported patterns detected.
-            </div>
-            """, unsafe_allow_html=True)
+            st.info("No repeated unsupported patterns detected.")
         else:
             for p in insights['unsupported_patterns']:
-                st.markdown(f"""
-                <div style="background: #FFFFFF; border: 1px solid #E2E8F0; padding: 1rem; border-radius: 8px; margin-bottom: 8px; border-left: 4px solid #DC2626;">
-                    <div style="display: flex; justify-content: space-between; font-weight: 700; color: #1E1B4B; font-size: 0.95rem;">
-                        <code>{p['matched_text']}</code>
-                        <span style="color: #DC2626;">Flagged {p['count']}x</span>
-                    </div>
-                    <div style="font-size: 0.82rem; color: #64748B; margin-top: 3px;">
-                        Category: {p['category']} • Requires empirical proof or promotional authorization
-                    </div>
-                </div>
-                """, unsafe_allow_html=True)
+                claim_stat_html = f"""
+<div style="background: #FFFFFF; border: 1px solid #E2E8F0; padding: 0.85rem 1rem; border-radius: 8px; margin-bottom: 8px; border-left: 4px solid #DC2626;">
+    <div style="display: flex; justify-content: space-between; font-weight: 700; color: #1E1B4B; font-size: 0.95rem;">
+        <code>{p['matched_text']}</code>
+        <span style="color: #DC2626;">Flagged {p['count']}x</span>
+    </div>
+    <div style="font-size: 0.82rem; color: #64748B; margin-top: 3px;">
+        Category: {p['category']} &bull; Requires empirical proof or promotional authorization
+    </div>
+</div>
+"""
+                render_html(claim_stat_html)
 
     st.markdown("### Policy Findings by Category")
     cat_items = insights.get("category_breakdown", {})
@@ -864,12 +713,7 @@ elif st.session_state["active_nav"] == "Insights":
         cols = st.columns(len(cat_items))
         for idx, (cat, cnt) in enumerate(cat_items.items()):
             with cols[idx]:
-                st.markdown(f"""
-                <div class="metric-tile" style="padding: 0.85rem;">
-                    <div style="font-size: 1.5rem; font-weight: 700; color: #1E1B4B;">{cnt}</div>
-                    <div style="font-size: 0.76rem; color: #64748B;">{cat}</div>
-                </div>
-                """, unsafe_allow_html=True)
+                st.metric(label=cat.upper(), value=cnt)
 
 
 # =============================================================
@@ -878,20 +722,12 @@ elif st.session_state["active_nav"] == "Insights":
 elif st.session_state["active_nav"] == "Review History":
     render_header("Immutable Governance Audit Trail")
 
-    st.markdown("""
-    <div style="font-size: 0.92rem; color: #475569; margin-bottom: 1.25rem;">
-        Every draft submission, automated policy check, human approval decision, and approval invalidation is recorded in a tamper-resistant SQLite audit log with exact UTC timestamps.
-    </div>
-    """, unsafe_allow_html=True)
+    st.markdown("Every draft submission, automated policy check, human approval decision, and approval invalidation is recorded in a tamper-resistant SQLite audit log with exact UTC timestamps.")
 
     audit_events = get_audit_trail(limit=50)
 
     if not audit_events:
-        st.markdown("""
-        <div style="background: #FFFFFF; border: 1px dashed #CBD5E1; border-radius: 8px; padding: 2rem; text-align: center; color: #64748B;">
-            No audit records found in the database.
-        </div>
-        """, unsafe_allow_html=True)
+        st.info("No audit records found in the database.")
     else:
         for ev in audit_events:
             color = "#0F766E"
@@ -902,21 +738,15 @@ elif st.session_state["active_nav"] == "Review History":
             elif "SUBMISSION" in ev.event_type:
                 color = "#1E1B4B"
 
-            st.markdown(f"""
-            <div style="background: #FFFFFF; border: 1px solid #E2E8F0; border-left: 4px solid {color}; padding: 1rem 1.25rem; border-radius: 6px; margin-bottom: 0.65rem;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-                    <span style="font-weight: 700; color: {color}; font-size: 0.92rem;">
-                        [{ev.event_type}]
-                    </span>
-                    <span style="font-size: 0.8rem; color: #94A3B8;">
-                        {ev.created_at[:19].replace('T', ' ')} UTC
-                    </span>
-                </div>
-                <div style="font-size: 0.92rem; color: #334155; margin-bottom: 4px;">
-                    {ev.description}
-                </div>
-                <div style="font-size: 0.8rem; color: #64748B;">
-                    <b>Actor:</b> {ev.actor} {f"| <b>Asset ID:</b> <code>{ev.submission_id}</code>" if ev.submission_id else ""}
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
+            asset_str = f" &bull; <b>Asset ID:</b> <code>{ev.submission_id}</code>" if ev.submission_id else ""
+            ev_html = f"""
+<div style="background: #FFFFFF; border: 1px solid #E2E8F0; border-left: 4px solid {color}; padding: 0.85rem 1.15rem; border-radius: 6px; margin-bottom: 0.65rem;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+        <span style="font-weight: 700; color: {color}; font-size: 0.92rem;">[{ev.event_type}]</span>
+        <span style="font-size: 0.8rem; color: #94A3B8;">{ev.created_at[:19].replace('T', ' ')} UTC</span>
+    </div>
+    <div style="font-size: 0.92rem; color: #334155; margin-bottom: 4px;">{ev.description}</div>
+    <div style="font-size: 0.8rem; color: #64748B;"><b>Actor:</b> {ev.actor}{asset_str}</div>
+</div>
+"""
+            render_html(ev_html)

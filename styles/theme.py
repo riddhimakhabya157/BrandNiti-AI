@@ -1,17 +1,16 @@
 """Indian Heritage × Modern AI Visual Identity & Styling System for BrandNiti AI.
-Enterprise SaaS design system featuring:
-- Deep Indigo (#1E1B4B, #161338) for structural navigation and visual anchors
+Enterprise SaaS styling:
+- Deep Indigo (#1E1B4B, #17143A) for primary navigation and visual anchors
 - Peacock Teal (#0F766E, #0D9488) for primary CTAs and active states
-- Warm Ivory / Soft Off-White (#FAF8F5, #F5F2EC) for comfortable canvas background
+- Warm Ivory / Soft Off-White (#FAF8F5) for comfortable canvas background
 - Antique Gold / Muted Saffron (#D97706, #B45309) for restrained highlights
-- Accessible, high-contrast typography and clear disposition tokens (PASS, REVIEW, HOLD)
+- Compact, professional enterprise header (no oversized banners)
+- All HTML blocks use strict textwrap.dedent to prevent CommonMark indented-code-block leaks.
 """
+import textwrap
 
-CUSTOM_CSS = """
+CUSTOM_CSS = textwrap.dedent("""
 <style>
-/* -------------------------------------------------------------
-   Typography & Canvas Setup
-   ------------------------------------------------------------- */
 @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Cinzel:wght@600;700;800&display=swap');
 
 html, body, [class*="css"] {
@@ -25,7 +24,7 @@ html, body, [class*="css"] {
     background-color: #FAF8F5;
 }
 
-/* Sidebar styling with subtle indigo heritage tone */
+/* Sidebar styling */
 [data-testid="stSidebar"] {
     background: linear-gradient(180deg, #17143A 0%, #0F172A 100%);
     color: #F8FAFC;
@@ -40,90 +39,83 @@ html, body, [class*="css"] {
 
 /* Streamlit main block container spacing */
 .main .block-container {
-    padding-top: 1.75rem;
-    padding-bottom: 3.5rem;
-    max-width: 1280px;
+    padding-top: 1.25rem !important;
+    padding-bottom: 3rem !important;
+    max-width: 1260px;
 }
 
 /* -------------------------------------------------------------
-   BrandNiti Enterprise Header & Wordmark
+   Compact Enterprise Top Brand Bar (Sleek, no oversized banner)
    ------------------------------------------------------------- */
-.bn-header {
-    background: linear-gradient(135deg, #1E1B4B 0%, #192147 60%, #0F766E 100%);
-    padding: 1.75rem 2.25rem;
-    border-radius: 12px;
+.bn-top-bar {
+    background: linear-gradient(90deg, #1E1B4B 0%, #1E2248 55%, #0F766E 100%);
+    padding: 0.9rem 1.4rem;
+    border-radius: 8px;
     color: #FFFFFF;
-    margin-bottom: 1.75rem;
-    border-bottom: 3px solid #D97706;
-    box-shadow: 0 4px 20px -2px rgba(30, 27, 75, 0.12);
-    position: relative;
-    overflow: hidden;
-}
-
-.bn-header::after {
-    content: "";
-    position: absolute;
-    top: 0;
-    right: 0;
-    width: 320px;
-    height: 100%;
-    opacity: 0.07;
-    background-image: radial-gradient(#D97706 2px, transparent 2px), radial-gradient(#14B8A6 2px, transparent 2px);
-    background-size: 24px 24px;
-    background-position: 0 0, 12px 12px;
-    pointer-events: none;
-}
-
-.bn-brand-container {
+    margin-bottom: 1.25rem;
+    border-bottom: 2.5px solid #D97706;
     display: flex;
+    justify-content: space-between;
     align-items: center;
-    gap: 16px;
+    box-shadow: 0 2px 8px rgba(30, 27, 75, 0.08);
 }
 
-.bn-logo-svg {
-    width: 44px;
-    height: 44px;
-    flex-shrink: 0;
+.bn-brand-group {
+    display: flex;
+    flex-direction: column;
 }
 
-.bn-title {
+.bn-brand-title {
     font-family: 'Cinzel', serif;
-    font-size: 1.95rem;
+    font-size: 1.45rem;
     font-weight: 700;
     letter-spacing: 0.04em;
     color: #FFFFFF;
-    margin: 0;
     line-height: 1.2;
 }
 
-.bn-title span.saffron {
+.bn-brand-title span.saffron {
     color: #F59E0B;
 }
 
-.bn-tagline {
-    font-size: 1.02rem;
+.bn-brand-tagline {
+    font-size: 0.85rem;
     color: #99F6E4;
     font-weight: 500;
-    margin-top: 4px;
-    letter-spacing: 0.015em;
+    margin-top: 2px;
 }
 
-.bn-subphrase {
-    font-size: 0.82rem;
-    color: #E2E8F0;
-    opacity: 0.9;
-    margin-top: 6px;
-    letter-spacing: 0.02em;
+.bn-badge-edition {
+    background: rgba(217, 119, 6, 0.25);
+    border: 1px solid #D97706;
+    color: #FDE68A;
+    font-size: 0.78rem;
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 6px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+/* Page Section Heading */
+.bn-page-heading {
+    font-size: 1.35rem;
+    font-weight: 700;
+    color: #1E1B4B;
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
 }
 
 /* -------------------------------------------------------------
-   Geometric Motif Divider (Understated Indian symmetry)
+   Understated Geometric Dividers
    ------------------------------------------------------------- */
 .bn-divider {
     display: flex;
     align-items: center;
     text-align: center;
-    margin: 1.75rem 0;
+    margin: 1.35rem 0;
     color: #D97706;
     opacity: 0.75;
 }
@@ -135,29 +127,29 @@ html, body, [class*="css"] {
 }
 
 .bn-divider:not(:empty)::before {
-    margin-right: 1.2em;
+    margin-right: 1rem;
 }
 
 .bn-divider:not(:empty)::after {
-    margin-left: 1.2em;
+    margin-left: 1rem;
 }
 
 .bn-jaali-icon {
-    font-size: 1.1rem;
-    letter-spacing: 0.25em;
+    font-size: 0.95rem;
+    letter-spacing: 0.2em;
 }
 
 /* -------------------------------------------------------------
-   Enterprise Cards & Surfaces
+   Enterprise Cards & Metric Displays
    ------------------------------------------------------------- */
 .bn-card {
     background: #FFFFFF;
-    border-radius: 10px;
-    padding: 1.5rem 1.75rem;
+    border-radius: 8px;
+    padding: 1.25rem 1.4rem;
     border: 1px solid #E2E8F0;
     border-left: 4px solid #0F766E;
-    box-shadow: 0 1px 3px rgba(30, 27, 75, 0.04);
-    margin-bottom: 1.25rem;
+    box-shadow: 0 1px 3px rgba(30, 27, 75, 0.03);
+    margin-bottom: 1rem;
 }
 
 .bn-card-gold {
@@ -169,76 +161,86 @@ html, body, [class*="css"] {
 }
 
 .bn-card-title {
-    font-size: 1.2rem;
+    font-size: 1.1rem;
     font-weight: 700;
     color: #1E1B4B;
-    margin-bottom: 0.5rem;
-    display: flex;
-    align-items: center;
-    gap: 8px;
+    margin-bottom: 0.35rem;
 }
 
 .bn-card-desc {
     color: #475569;
-    font-size: 0.95rem;
-    line-height: 1.6;
+    font-size: 0.92rem;
+    line-height: 1.55;
+}
+
+/* Metric Display Tiles */
+.metric-tile {
+    background: #FFFFFF;
+    padding: 1rem 1.15rem;
+    border-radius: 8px;
+    border: 1px solid #E2E8F0;
+    text-align: center;
+    box-shadow: 0 1px 2px rgba(30, 27, 75, 0.03);
+}
+
+.metric-tile .num {
+    font-size: 2rem;
+    font-weight: 800;
+    color: #1E1B4B;
+    line-height: 1.15;
+}
+
+.metric-tile .lbl {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #64748B;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-top: 4px;
 }
 
 /* -------------------------------------------------------------
    PASS / REVIEW / HOLD Disposition Badges
    ------------------------------------------------------------- */
-.badge-pass {
+.bn-badge {
     display: inline-flex;
     align-items: center;
-    gap: 7px;
+    gap: 6px;
+    font-weight: 700;
+    font-size: 0.88rem;
+    padding: 4px 12px;
+    border-radius: 6px;
+    letter-spacing: 0.02em;
+}
+
+.bn-badge-pass {
     background-color: #ECFDF5;
     color: #065F46;
     border: 1.5px solid #10B981;
-    font-weight: 700;
-    font-size: 0.9rem;
-    padding: 5px 14px;
-    border-radius: 6px;
-    letter-spacing: 0.03em;
 }
 
-.badge-review {
-    display: inline-flex;
-    align-items: center;
-    gap: 7px;
+.bn-badge-review {
     background-color: #FFFBEB;
     color: #92400E;
     border: 1.5px solid #F59E0B;
-    font-weight: 700;
-    font-size: 0.9rem;
-    padding: 5px 14px;
-    border-radius: 6px;
-    letter-spacing: 0.03em;
 }
 
-.badge-hold {
-    display: inline-flex;
-    align-items: center;
-    gap: 7px;
+.bn-badge-hold {
     background-color: #FEF2F2;
     color: #991B1B;
     border: 1.5px solid #EF4444;
-    font-weight: 700;
-    font-size: 0.9rem;
-    padding: 5px 14px;
-    border-radius: 6px;
-    letter-spacing: 0.03em;
 }
 
 /* -------------------------------------------------------------
-   Findings Card & Severity Tokens
+   Findings Box & Severity Border Indicators
    ------------------------------------------------------------- */
 .finding-box {
     background-color: #FFFFFF;
     border: 1px solid #E2E8F0;
     border-radius: 8px;
-    padding: 1.15rem 1.35rem;
-    margin-bottom: 1rem;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+    padding: 1rem 1.25rem;
+    margin-bottom: 0.85rem;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
 }
 
 .finding-crit {
@@ -253,70 +255,39 @@ html, body, [class*="css"] {
 
 .finding-med {
     border-left: 5px solid #D97706;
-    background-color: #FFFFFD;
 }
 
 .finding-low {
     border-left: 5px solid #0F766E;
 }
 
-/* Metric Tiles */
-.metric-tile {
-    background: #FFFFFF;
-    padding: 1.25rem 1.4rem;
-    border-radius: 8px;
-    border: 1px solid #E2E8F0;
-    text-align: center;
-    box-shadow: 0 1px 3px rgba(30, 27, 75, 0.04);
-}
-
-.metric-tile .num {
-    font-size: 2.2rem;
-    font-weight: 800;
-    color: #1E1B4B;
-    line-height: 1.15;
-}
-
-.metric-tile .lbl {
-    font-size: 0.82rem;
-    font-weight: 600;
-    color: #64748B;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    margin-top: 6px;
-}
-
-/* Revision Diff Container */
+/* Code Diff Box */
 .diff-box {
     background-color: #F8FAFC;
     border: 1px solid #CBD5E1;
-    border-radius: 8px;
-    padding: 1rem 1.25rem;
+    border-radius: 6px;
+    padding: 0.85rem 1.1rem;
     font-family: 'Plus Jakarta Sans', monospace;
-    font-size: 0.95rem;
+    font-size: 0.92rem;
     white-space: pre-wrap;
-    line-height: 1.6;
+    line-height: 1.55;
     color: #1E293B;
 }
 
-/* Streamlit button refinements: Peacock Teal primary */
+/* Buttons */
 button[kind="primary"] {
     background-color: #0F766E !important;
     border-color: #0F766E !important;
     color: #FFFFFF !important;
     font-weight: 600 !important;
-    font-size: 0.95rem !important;
-    padding: 0.55rem 1.25rem !important;
-    letter-spacing: 0.02em !important;
+    font-size: 0.92rem !important;
     border-radius: 6px !important;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08) !important;
-    transition: all 0.15s ease-in-out !important;
+    padding: 0.5rem 1.2rem !important;
 }
 
 button[kind="primary"]:hover {
     background-color: #0D9488 !important;
     border-color: #0D9488 !important;
-    box-shadow: 0 3px 6px rgba(15, 118, 110, 0.25) !important;
 }
 
 button[kind="secondary"] {
@@ -324,76 +295,41 @@ button[kind="secondary"] {
     border-color: #CBD5E1 !important;
     color: #1E1B4B !important;
     font-weight: 600 !important;
-    font-size: 0.92rem !important;
+    font-size: 0.9rem !important;
     border-radius: 6px !important;
 }
-
-button[kind="secondary"]:hover {
-    background-color: #F1F5F9 !important;
-    border-color: #94A3B8 !important;
-}
-
-/* Form input refinement */
-input, textarea, select {
-    font-size: 0.95rem !important;
-}
-
-/* Clean expander headers */
-.streamlit-expanderHeader {
-    font-size: 1rem !important;
-    font-weight: 600 !important;
-    color: #1E1B4B !important;
-}
 </style>
-"""
-
-BRAND_SVG_EMBLEM = """
-<svg class="bn-logo-svg" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <polygon points="50,4 96,50 50,96 4,50" stroke="#D97706" stroke-width="2.5" fill="rgba(217, 119, 6, 0.08)"/>
-  <rect x="22" y="22" width="56" height="56" rx="6" stroke="#14B8A6" stroke-width="2.2" fill="none"/>
-  <line x1="50" y1="20" x2="50" y2="80" stroke="#FDE68A" stroke-width="2.2" stroke-linecap="round"/>
-  <line x1="28" y1="40" x2="72" y2="40" stroke="#FDE68A" stroke-width="2.2" stroke-linecap="round"/>
-  <path d="M28 40 L24 58 C24 62 32 62 32 58 Z" fill="#14B8A6" stroke="#99F6E4" stroke-width="1.5"/>
-  <path d="M72 40 L68 58 C68 62 76 62 76 58 Z" fill="#14B8A6" stroke="#99F6E4" stroke-width="1.5"/>
-  <polygon points="50,33 55,40 50,47 45,40" fill="#F59E0B"/>
-  <circle cx="50" cy="50" r="3" fill="#FFFFFF"/>
-</svg>
-"""
+""").strip()
 
 def render_header(subtitle: str = ""):
-    """Renders the top BrandNiti AI visual header with refined SVG emblem and enterprise identity."""
+    """Renders the sleek, compact enterprise top bar with BrandNiti AI wordmark and page title."""
     import streamlit as st
     st.markdown(CUSTOM_CSS, unsafe_allow_html=True)
-    st.markdown(f"""
-    <div class="bn-header">
-        <div class="bn-brand-container">
-            {BRAND_SVG_EMBLEM}
-            <div>
-                <div class="bn-title">
-                    BRAND<span class="saffron">NITI</span> AI
-                    <span style="font-size: 1.15rem; opacity: 0.6; font-weight: 300; margin: 0 8px;">|</span>
-                    <span style="font-size: 1.05rem; font-weight: 500; font-family: 'Plus Jakarta Sans', sans-serif;">Enterprise Governance Studio</span>
-                </div>
-                <div class="bn-tagline">Every Brand Message. On Brand.</div>
-                <div class="bn-subphrase">AI-powered brand governance. Create confidently. Review intelligently. Publish responsibly.</div>
-            </div>
-        </div>
+    top_bar_html = textwrap.dedent("""
+<div class="bn-top-bar">
+    <div class="bn-brand-group">
+        <div class="bn-brand-title">BRAND<span class="saffron">NITI</span> AI</div>
+        <div class="bn-brand-tagline">Every Brand Message. On Brand. &bull; Enterprise Governance</div>
     </div>
-    """, unsafe_allow_html=True)
+    <div class="bn-badge-edition">Governance Studio</div>
+</div>
+""").strip()
+    st.markdown(top_bar_html, unsafe_allow_html=True)
     if subtitle:
-        st.markdown(f"<div style='font-size: 1.35rem; font-weight: 700; color: #1E1B4B; margin-bottom: 1.25rem;'>{subtitle}</div>", unsafe_allow_html=True)
+        st.markdown(f'<div class="bn-page-heading">{subtitle}</div>', unsafe_allow_html=True)
 
 def render_disposition_badge(disposition: str) -> str:
-    """Returns HTML for PASS, REVIEW, or HOLD badge with accessible icons."""
+    """Returns clean HTML for PASS, REVIEW, or HOLD badge without any leading indentation."""
     d = (disposition or "REVIEW").upper()
     if d == "PASS":
-        return '<span class="badge-pass">✔ PASS — Compliant</span>'
+        return '<span class="bn-badge bn-badge-pass">✔ PASS — Compliant</span>'
     elif d == "HOLD":
-        return '<span class="badge-hold">✖ HOLD — Policy Blocked</span>'
+        return '<span class="bn-badge bn-badge-hold">✖ HOLD — Policy Blocked</span>'
     else:
-        return '<span class="badge-review">⚠ REVIEW — Verification Required</span>'
+        return '<span class="bn-badge bn-badge-review">⚠ REVIEW — Verification Required</span>'
 
 def render_divider(text: str = "◆"):
-    """Renders an understated Indian-motif divider."""
+    """Renders an understated Indian-motif divider without leading indentation."""
     import streamlit as st
-    st.markdown(f'<div class="bn-divider"><span class="bn-jaali-icon">{text}</span></div>', unsafe_allow_html=True)
+    divider_html = f'<div class="bn-divider"><span class="bn-jaali-icon">{text}</span></div>'
+    st.markdown(divider_html, unsafe_allow_html=True)
