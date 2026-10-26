@@ -26,8 +26,8 @@ def seed_nivara_pro_if_not_exists():
             NIVARA_BRAND_ID,
             "Nivara Pro",
             "Clarity, Balance & Daily Performance",
-            "[FICTIONAL DEMO BRAND] Nivara Pro is an illustrative premium wellness and productivity supplement brand used strictly for hackathon demonstration and policy testing. Not a real product.",
-            "Health & Wellness (Fictional Demo)",
+            "Sample Brand Profile — Nivara Pro is an illustrative premium wellness and daily performance brand used to demonstrate policy enforcement, conditional promotional checks, and evidence verification.",
+            "Health & Wellness (Sample Profile)",
             1, # is_demo = True
             NIVARA_GUIDELINE_ID,
             now,
@@ -72,7 +72,7 @@ def seed_nivara_pro_if_not_exists():
             NIVARA_GUIDELINE_ID,
             NIVARA_BRAND_ID,
             1,
-            "v1.0 - Baseline Governance Policy (Demo)",
+            "v1.0 - Baseline Governance Policy (Sample)",
             "Empathetic, scientifically grounded, transparent, encouraging, non-sensational",
             "Working professionals, fitness enthusiasts, and wellness-focused adults (Ages 24-45)",
             json.dumps(approved_prices),
@@ -80,7 +80,7 @@ def seed_nivara_pro_if_not_exists():
             json.dumps(required_disclaimers),
             json.dumps(evidence_requirements),
             1,
-            "Initial seeded brand rules for Hackathon Round 2 demonstration",
+            "Baseline brand rules and governance policy",
             now
         ))
 
@@ -191,7 +191,7 @@ def seed_nivara_pro_if_not_exists():
             str(uuid.uuid4()),
             None,
             "SYSTEM_INITIALIZED",
-            "Seeded baseline demonstration brand 'Nivara Pro' and Rule Set v1.0",
+            "Initialized baseline brand guidelines and policy rule set for Nivara Pro",
             "System Seed Service",
             json.dumps({"brand_id": NIVARA_BRAND_ID}),
             now

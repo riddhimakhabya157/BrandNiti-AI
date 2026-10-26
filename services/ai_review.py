@@ -168,7 +168,7 @@ def generate_sample_fallback_review(
                 review_run_id="",
                 source="AI_ASSISTED",
                 rule_id=None,
-                rule_title="Contextual: High-Pressure Urgency Phrasing [Sample Mode]",
+                rule_title="Contextual: High-Pressure Urgency Phrasing",
                 category="Voice & Tone",
                 severity="MEDIUM",
                 disposition_impact="REVIEW",
@@ -191,7 +191,7 @@ def generate_sample_fallback_review(
                 review_run_id="",
                 source="AI_ASSISTED",
                 rule_id=None,
-                rule_title="Contextual: Unsubstantiated Superlative [Sample Mode]",
+                rule_title="Contextual: Unsubstantiated Superlative",
                 category="Claims & Evidence",
                 severity="HIGH",
                 disposition_impact="REVIEW",
@@ -221,8 +221,8 @@ def generate_sample_fallback_review(
         revised_copy += "\n\n*Results may vary based on individual lifestyle and physiological factors."
 
     summary = (
-        "[SAMPLE REVIEW MODE — NO LIVE API KEY] Contextual tone review performed via illustrative rules. "
-        "Evaluated voice alignment, superlative claims, and compliance disclaimers."
+        "[DETERMINISTIC FALLBACK REVIEW] Contextual checks evaluated brand voice alignment, "
+        "urgency phrasing, superlative claims, and compliance disclaimers."
     )
 
     return findings, summary, revised_copy
