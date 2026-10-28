@@ -5,13 +5,13 @@
 
 ---
 
-## 🏛️ Visual Identity: Indian Heritage × Modern AI
+## 🛡️ Visual Identity: Premium Enterprise Compliance
 
-BrandNiti AI combines an Indian-inspired visual philosophy with modern enterprise SaaS architecture:
-- **Refined Color Palette:** Deep Indigo (`#1E1B4B`) for structure and primary navigation anchors, Peacock Teal (`#0F766E`) for primary CTAs and active states, Warm Ivory (`#FAF8F5`) for canvas surfaces, and restrained Antique Gold / Saffron (`#D97706`) accents.
-- **Architectural Symmetry & Emblem:** Minimalist geometric brand emblem combining symmetrical governance balance lines with architectural line work.
-- **Accessible Disposition System:** Color-coded, icon-paired status tokens for **PASS** (Emerald Green `#059669`), **REVIEW** (Amber/Gold `#D97706`), and **HOLD** (Ruby Red `#DC2626`).
-- **Enterprise Typography & Layout:** High-density, professional typography (`Plus Jakarta Sans` body and `Cinzel` wordmark), generous spacing, responsive tables, side-by-side diff comparisons, and real-time KPI metrics.
+BrandNiti AI uses a modern, high-contrast **White + Deep Green + Red** visual identity designed for enterprise brand governance:
+- **Refined Color Palette:** Pure White (`#FFFFFF`) card surfaces on a clean canvas (`#F8FAFC`), Deep Green headings (`#14532D`), Primary Forest Green (`#166534`) for brand actions and positive states, and crisp borders (`#E2E8F0`).
+- **Brand Emblem:** Minimalist shield emblem symbolizing brand defense, policy adherence, and verified compliance.
+- **Accessible Disposition System:** Icon-paired status tokens strictly following color rules: **PASS** (Compliant Green `#166534`, surface `#DCFCE7`), **REVIEW** (Amber `#A16207`, surface `#FEF3C7`), and **HOLD** (Ruby Red `#DC2626`, surface `#FEE2E2`).
+- **Enterprise Typography & Layout:** High-density, professional typography (`Plus Jakarta Sans`), responsive tables, side-by-side diff comparisons, and genuine database-derived KPI metrics.
 
 ---
 
